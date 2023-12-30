@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'settlement.apps.SettlementConfig',
+    'trabajadores.apps.TrabajadoresConfig',
+    'liquidacion.apps.LiquidacionConfig',
 ]
 
 MIDDLEWARE = [
