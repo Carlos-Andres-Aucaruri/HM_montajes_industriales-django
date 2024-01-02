@@ -3,6 +3,13 @@ from django.db import models
 class Settlement(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
+    processed = models.BooleanField(default=False)
+
+    def __str__(self) -> str:
+        return f'{self.start_date} - {self.end_date}'
+
+class SettlementDetails(models.Model):
+    settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE)
     worker = models.ForeignKey("workers.Worker", on_delete=models.CASCADE)
     monday = models.FloatField(default=0.0)
     tuesday = models.FloatField(default=0.0)

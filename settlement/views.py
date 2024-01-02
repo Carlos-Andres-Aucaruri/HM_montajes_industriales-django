@@ -1,5 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+import pandas as pd
+from .models import Settlement, SettlementDetails
+from workers.models import Worker, RawSignings
 
 rooms = [
     {'id': 1, 'name': 'Lets learn Python!'},
@@ -19,3 +22,6 @@ def room(request, pk):
             room = i
     context = {'room': room}
     return render(request, 'settlement/room.html', context)
+
+def process_signings(request):
+    return HttpResponse("File uploaded and processed successfully")
