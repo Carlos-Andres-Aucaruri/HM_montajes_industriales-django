@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h1>Liquidaciones</h1>
+
+<div>
+    <div>
+        {% for settlement in settlements %}
+        <div>
+            <h5>{{settlement.id}} -- <a href="{% url 'view' settlement.id %}">{{settlement.start_date}} - {{settlement.end_date}}</a></h5>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

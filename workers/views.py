@@ -63,7 +63,7 @@ def upload_signings(request):
                     end_date=date_range["end_date"],
                 )
 
-        return redirect('/settlement/process-signings')
+        return redirect('/settlement/')
 
     return render(request, 'workers/upload_excel.html')
 
@@ -77,7 +77,7 @@ def normalize_date(datetime: datetime) -> datetime:
         # goes to hour and 30
         datetime = datetime.replace(minute=30, second=0)
         return datetime
-    if datetime.minute > 23 and datetime.minute <= 53:
+    if 23 < datetime.minute <= 53:
         # goes to next hour o'clock
         datetime = datetime + timedelta(hours=1)
         datetime = datetime.replace(minute=0, second=0)

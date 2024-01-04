@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h1>Liquidacion</h1>
+
+<div>
+    <div>
+        {{settlement}}
+    </div>
+    <form method="post" action="{% url 'process-signing' settlement.id %}">
+        {% csrf_token %}
+        <button type="submit">Procesar Fichajes</button>
+    </form>
+</div>
+
+{% endblock %}

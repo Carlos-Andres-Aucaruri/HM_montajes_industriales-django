@@ -1,4 +1,5 @@
 from django.db import models
+from pytz import timezone
 
 class Worker(models.Model):
     document = models.IntegerField()
@@ -21,3 +22,6 @@ class RawSignings(models.Model):
     signed_type = models.CharField(max_length=1, choices=SIGNED_TYPES)
     door = models.CharField(max_length=30)
     contract_number = models.CharField(max_length=30)
+
+    def get_original_normalized_date_signed(self):
+        return self.normalized_date_signed.astimezone(timezone('America/Bogota'))
