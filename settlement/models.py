@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.serializers.json import DjangoJSONEncoder
 
 class Settlement(models.Model):
     start_date = models.DateTimeField()
@@ -26,3 +27,4 @@ class SettlementDetails(models.Model):
     night_holiday_hours = models.FloatField(default=0.0)
     daytime_holiday_overtime = models.FloatField(default=0.0)
     night_holiday_overtime = models.FloatField(default=0.0)
+    working_shifts = models.JSONField(encoder=DjangoJSONEncoder, default=None)
