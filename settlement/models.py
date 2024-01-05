@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.serializers.json import DjangoJSONEncoder
-from datetime import datetime
+from datetime import datetime, timedelta
 from common.util import get_hours_difference
 
 class Settlement(models.Model):
@@ -14,13 +14,13 @@ class Settlement(models.Model):
 class SettlementDetails(models.Model):
     def working_shifts_default():
         return {
-            "monday": None,
-            "tuesday": None,
-            "wednesday": None,
-            "thursday": None,
-            "friday": None,
-            "saturday": None,
-            "sunday": None,
+            'monday': None,
+            'tuesday': None,
+            'wednesday': None,
+            'thursday': None,
+            'friday': None,
+            'saturday': None,
+            'sunday': None,
         }
 
     settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE)
@@ -42,77 +42,82 @@ class SettlementDetails(models.Model):
     night_holiday_overtime = models.FloatField(default=0.0)
     working_shifts = models.JSONField(encoder=DjangoJSONEncoder, default=working_shifts_default)
 
+    def __str__(self) -> str:
+        return f'HO: {self.ordinary_hours} | HED: {self.daytime_overtime} | HRN: {self.night_surcharge_hours} | HEN: {self.night_overtime} | HF: {self.holiday_hours} | HFN: {self.night_holiday_hours} | HEFD: {self.daytime_holiday_overtime} | HEFN: {self.night_holiday_overtime}'
+    
+    def set_working_shift_day(self, start_date: datetime, end_date: datetime, total_hours: float):
+        working_shift = {'start': start_date, 'end': start_date}
+        if start_date.weekday() == 0:
+            self.monday = total_hours
+            self.working_shifts['monday'] = working_shift
+        elif start_date.weekday() == 1:
+            self.tuesday = total_hours
+            self.working_shifts['tuesday'] = working_shift
+        elif start_date.weekday() == 2:
+            self.wednesday = total_hours
+            self.working_shifts['wednesday'] = working_shift
+        elif start_date.weekday() == 3:
+            self.thursday = total_hours
+            self.working_shifts['thursday'] = working_shift
+        elif start_date.weekday() == 4:
+            self.friday = total_hours
+            self.working_shifts['friday'] = working_shift
+        elif start_date.weekday() == 5:
+            self.saturday = total_hours
+            self.working_shifts['saturday'] = working_shift
+        elif start_date.weekday() == 6:
+            self.sunday = total_hours
+            self.working_shifts['sunday'] = working_shift
+
     def classify_hours(self, start_date: datetime, end_date: datetime):
-        MORNING = 0
-        AFTERNOON = 1
-        EVENING = 2
-        print(f'TURN STARTED AT {start_date} AND FINISHED AT {end_date}')
-        if start_date.hour < 10:
-            time_of_day = MORNING
-        elif 10 <= start_date.hour < 17:
-            time_of_day = AFTERNOON
-        elif start_date.hour >= 17:
-            time_of_day = EVENING
-
+        print(f'SHIFT STARTED AT {start_date} AND FINISHED AT {end_date}')
         total_hours = get_hours_difference(start_date, end_date)
-        is_holiday = True if start_date.weekday() == 6 else False
-        if time_of_day == MORNING:
-            remaining_hours = total_hours-8
-            ordinary_hours = 8 if remaining_hours > 0 else total_hours
-            daytime_overtime = remaining_hours if remaining_hours > 0 else 0
-            if is_holiday:
-                self.holiday_hours += ordinary_hours
-                self.daytime_holiday_overtime += daytime_overtime
-            else:
-                self.ordinary_hours += ordinary_hours
-                self.daytime_overtime += daytime_overtime
-            print(f'HO: {self.ordinary_hours} | HED: {self.daytime_overtime} | HF: {self.holiday_hours} | HEFD: {self.daytime_holiday_overtime}')
-        elif time_of_day == AFTERNOON:
-            pass
-        elif time_of_day == EVENING:
-            nine_hour = start_date.replace(hour=21, minute=0)
-            # Hours till 9 pm
-            ordinary_hours = get_hours_difference(start_date, nine_hour)
-            remaining_hours = total_hours - ordinary_hours
-            ordinary_hours = ordinary_hours if remaining_hours > 0 else total_hours
-            if is_holiday:
-                self.holiday_hours += ordinary_hours
-            else:
-                self.ordinary_hours += ordinary_hours
-            if remaining_hours > 0:
-                # Hours till midnight (eating time between 9 and 10 pm not included)
-                night_surcharge_hours = 2 if remaining_hours >= 2 else remaining_hours
-                if is_holiday:
-                    self.night_holiday_hours += night_surcharge_hours
-                else:
-                    self.night_surcharge_hours += night_surcharge_hours
-                ordinary_hours += night_surcharge_hours
-                remaining_hours -= night_surcharge_hours
-                remaining_hours -= 1
-                if remaining_hours > 0:
-                    is_overtime = False
-                    overtime_hours = 0.0
-                    is_holiday = True if end_date.weekday() == 6 else False
-                    night_hours = 0.0
-                    print(remaining_hours)
-                    while remaining_hours > 0:
-                        if ordinary_hours == 8.0 and not is_overtime:
-                            is_overtime = True
-                        if is_overtime:
-                            overtime_hours += 0.5
-                        else:
-                            ordinary_hours += 0.5
-                            night_hours += 0.5
-                        remaining_hours -= 0.5
-
+        self.set_working_shift_day(start_date, end_date, total_hours)
+        starting_day_time = datetime(start_date.year, start_date.month, start_date.day, 6, 0, 0, 0, start_date.tzinfo)
+        finishing_day_time = starting_day_time + timedelta(days=1)
+        # Lunch time between 12 and 1 pm not included when adding hours
+        start_lunch_time = datetime(start_date.year, start_date.month, start_date.day, 12, 0, 0, 0, start_date.tzinfo)
+        end_lunch_time = start_lunch_time + timedelta(hours=1)
+        # Eating time between 9 and 10 pm not included when adding hours
+        start_eat_time = datetime(start_date.year, start_date.month, start_date.day, 21, 0, 0, 0, start_date.tzinfo)
+        end_eat_time = start_eat_time + timedelta(hours=1)
+        remaining_hours = total_hours
+        normal_hours = 0.0
+        current_time = start_date
+        is_holiday = True if current_time.weekday() == 6 else False
+        while remaining_hours > 0.0:
+            if (start_lunch_time <= current_time < end_lunch_time) or (start_eat_time <= current_time < end_eat_time):
+                current_time = current_time + timedelta(minutes=30)
+                remaining_hours -= 0.5
+                continue
+            if (starting_day_time <= current_time < start_eat_time) or (current_time >= finishing_day_time):
+                if normal_hours < 8:
                     if is_holiday:
-                        self.night_holiday_hours += night_hours
-                        self.night_holiday_overtime += overtime_hours
+                        self.holiday_hours += 0.5
                     else:
-                        self.night_surcharge_hours += night_hours
-                        self.night_overtime += overtime_hours
-
-            print(f'HO: {self.ordinary_hours} | HRN: {self.night_surcharge_hours} | HEN: {self.night_overtime} | HF: {self.holiday_hours} | HFN: {self.night_holiday_hours} | HEFN: {self.night_holiday_overtime}')
+                        self.ordinary_hours += 0.5
+                    normal_hours += 0.5
+                else:
+                    if is_holiday:
+                        self.daytime_holiday_overtime += 0.5
+                    else:
+                        self.daytime_overtime += 0.5
+            else:
+                if normal_hours < 8:
+                    if is_holiday:
+                        self.night_holiday_hours += 0.5
+                    else:
+                        self.night_surcharge_hours += 0.5
+                    normal_hours += 0.5
+                else:
+                    if is_holiday:
+                        self.night_holiday_overtime += 0.5
+                    else:
+                        self.night_overtime += 0.5
+            current_time = current_time + timedelta(minutes=30)
+            is_holiday = True if current_time.weekday() == 6 else False
+            remaining_hours -= 0.5
+        # print(self)
 
     def classify_week(self):
         pass
