@@ -4,6 +4,7 @@ from .models import Worker, RawSignings
 from settlement.models import Settlement
 from datetime import datetime, timezone, timedelta
 import pandas as pd
+from common.util import normalize_date, get_start_end_week_dates
 
 # Create your views here.
 def home(request):
@@ -31,7 +32,7 @@ def upload_signings(request):
                 signed_type="E" if row.iloc[4] == "entrada" else "S"
 
                 if not dates:
-                    start_date, end_date = get_start_end_dates(normalized_date_signed)
+                    start_date, end_date = get_start_end_week_dates(normalized_date_signed)
                     dates.append({"start_date": start_date, "end_date": end_date})
                 else:
                     found_in_week = False
@@ -40,7 +41,7 @@ def upload_signings(request):
                             found_in_week = True
                             break
                     if not found_in_week:
-                        start_date, end_date = get_start_end_dates(normalized_date_signed)
+                        start_date, end_date = get_start_end_week_dates(normalized_date_signed)
                         dates.append({"start_date": start_date, "end_date": end_date})
 
                 entry = RawSignings.objects.filter(worker=worker, date_signed=date_signed).first()
@@ -66,27 +67,3 @@ def upload_signings(request):
         return redirect('/settlement/')
 
     return render(request, 'workers/upload_excel.html')
-
-def normalize_date(datetime: datetime) -> datetime:
-    if datetime.minute > 53:
-        # goes to next hour and 30
-        datetime = datetime + timedelta(hours=1)
-        datetime = datetime.replace(minute=30, second=0)
-        return datetime
-    if datetime.minute <= 23:
-        # goes to hour and 30
-        datetime = datetime.replace(minute=30, second=0)
-        return datetime
-    if 23 < datetime.minute <= 53:
-        # goes to next hour o'clock
-        datetime = datetime + timedelta(hours=1)
-        datetime = datetime.replace(minute=0, second=0)
-        return datetime
-    return datetime
-
-def get_start_end_dates(datetime: datetime):
-    days_to_monday = datetime.weekday()
-    monday_date = datetime - timedelta(days=days_to_monday)
-    start_date = monday_date.replace(hour=6, minute=0, second=0)
-    end_date = start_date + timedelta(days=7)
-    return start_date, end_date

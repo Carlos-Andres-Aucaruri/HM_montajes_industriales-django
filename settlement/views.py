@@ -4,6 +4,7 @@ import pandas as pd
 from .models import Settlement, SettlementDetails
 from workers.models import Worker, RawSignings
 from datetime import datetime
+from common.util import get_hours_difference
 
 rooms = [
     {'id': 1, 'name': 'Lets learn Python!'},
@@ -39,14 +40,6 @@ def process_signing(request, pk):
     if request.method == 'POST':
         raw_signings = RawSignings.objects.filter(normalized_date_signed__range=(settlement.start_date, settlement.end_date)).order_by('worker__id', 'normalized_date_signed').all()
         is_starting_new_day = True
-        ordinary_hours = 0
-        daytime_overtime = 0
-        night_surcharge_hours = 0
-        night_overtime = 0
-        holiday_hours = 0
-        night_holiday_hours = 0
-        daytime_holiday_overtime = 0
-        night_holiday_overtime = 0
         start_date_signed = None
         is_inside = True
         current_worker_id = 0
@@ -62,7 +55,6 @@ def process_signing(request, pk):
                     settlement=settlement,
                     worker=raw_signing.worker
                 )
-                # Set defaults of settlement_details to 0
 
             current_date = raw_signing.get_original_normalized_date_signed()
             is_inside = True if raw_signing.signed_type == "E" else False
@@ -96,9 +88,4 @@ def process_signing(request, pk):
 
             if index > 50:
                 break
-    # return redirect('view', pk=settlement.id)
-    return HttpResponse('Entries Processed')
-
-def get_hours_difference(start_date: datetime, end_date: datetime) -> int:
-    time_difference = end_date - start_date
-    return time_difference.total_seconds() / 3600
+    return redirect('view', pk=settlement.id)
