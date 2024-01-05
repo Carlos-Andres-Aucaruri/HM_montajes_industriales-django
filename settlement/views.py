@@ -45,7 +45,7 @@ def process_signing(request, pk):
         current_worker_id = 0
         settlement_details = None
         for index, raw_signing in enumerate(raw_signings):
-            print(raw_signing.get_original_normalized_date_signed(), raw_signing.signed_type, raw_signing.worker.name)
+            # print(raw_signing.get_original_normalized_date_signed(), raw_signing.signed_type, raw_signing.worker.name)
             if is_starting_new_day and raw_signing.signed_type == "S":
                 continue
 
@@ -69,8 +69,7 @@ def process_signing(request, pk):
                 next_signed_type = raw_signings[index+1].signed_type
                 if next_worker_id != current_worker_id:
                     settlement_details.classify_hours(start_date_signed, current_date)
-                    settlement_details.classify_week()
-                    # settlement_details.save()
+                    settlement_details.save()
                     is_starting_new_day = True
                     continue
                 if not is_inside:
@@ -83,9 +82,6 @@ def process_signing(request, pk):
                             is_starting_new_day = True
             elif index == len(raw_signings)-1:
                 settlement_details.classify_hours(start_date_signed, current_date)
-                settlement_details.classify_week()
-                # settlement_details.save()
+                settlement_details.save()
 
-            if index > 50:
-                break
     return redirect('view', pk=settlement.id)

@@ -70,7 +70,7 @@ class SettlementDetails(models.Model):
             self.working_shifts['sunday'] = working_shift
 
     def classify_hours(self, start_date: datetime, end_date: datetime):
-        print(f'SHIFT STARTED AT {start_date} AND FINISHED AT {end_date}')
+        # print(f'SHIFT STARTED AT {start_date} AND FINISHED AT {end_date}')
         total_hours = get_hours_difference(start_date, end_date)
         self.set_working_shift_day(start_date, end_date, total_hours)
         starting_day_time = datetime(start_date.year, start_date.month, start_date.day, 6, 0, 0, 0, start_date.tzinfo)
@@ -118,6 +118,3 @@ class SettlementDetails(models.Model):
             is_holiday = True if current_time.weekday() == 6 else False
             remaining_hours -= 0.5
         # print(self)
-
-    def classify_week(self):
-        pass
