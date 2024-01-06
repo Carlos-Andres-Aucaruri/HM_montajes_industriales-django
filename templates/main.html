@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HM Montajes Industriales</title>
+    <title>{% block title %}{% endblock %} | HM Montajes Industriales</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100">
     {% include 'navbar.html' %}
-
-    {% block content %}
-
-    {% endblock %}
+    <div class="px-6 py-6">
+        {% block content %}
+        {% endblock %}
+    </div>
 </body>
 </html>

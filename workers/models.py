@@ -23,5 +23,8 @@ class RawSignings(models.Model):
     door = models.CharField(max_length=30)
     contract_number = models.CharField(max_length=30)
 
+    class Meta:
+        verbose_name_plural = 'Raw signings'
+
     def get_original_normalized_date_signed(self):
         return self.normalized_date_signed.astimezone(timezone('America/Bogota'))
