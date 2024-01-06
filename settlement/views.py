@@ -5,6 +5,7 @@ from .models import Settlement, SettlementDetails
 from workers.models import Worker, RawSignings
 from datetime import datetime
 from common.util import get_hours_difference
+from io import BytesIO
 
 rooms = [
     {'id': 1, 'name': 'Lets learn Python!'},
@@ -83,5 +84,27 @@ def process_signing(request, pk):
             elif index == len(raw_signings)-1:
                 settlement_details.classify_hours(start_date_signed, current_date)
                 settlement_details.save()
+        settlement.processed = True
+        settlement.save()
 
+    return redirect('view', pk=settlement.id)
+
+def export_settlement(request, pk):
+    settlement = Settlement.objects.get(id=int(pk))
+    if request.method == 'POST':
+        try:
+            settlement_details = SettlementDetails.objects.filter(settlement=settlement).all()
+            df = pd.DataFrame.from_records(settlement_details.values(), exclude=['working_shifts'])
+            # Create an in-memory buffer for the Excel file
+            excel_buffer = BytesIO()
+            start_day = settlement.start_date.day
+            end_day = settlement.end_date.day
+            filename = f'LIQ. SEM {start_day}-AL-{end_day}-{settlement.start_date.month}.xlsx'
+            df.to_excel(excel_buffer)
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response.write(excel_buffer.getvalue())
+            return response
+        except Exception as e:
+            print(f'There was a problem exporting the excel file: {e}')
     return redirect('view', pk=settlement.id)

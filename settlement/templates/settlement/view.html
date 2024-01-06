@@ -12,6 +12,12 @@
         {% csrf_token %}
         <button type="submit">Procesar Fichajes</button>
     </form>
+    {% if settlement.processed %}
+        <form method="post" action="{% url 'export-settlement' settlement.id %}">
+            {% csrf_token %}
+            <button type="submit">Exportar liquidacion</button>
+        </form>
+    {% endif %}
 </div>
 
 {% endblock %}
