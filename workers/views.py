@@ -5,6 +5,7 @@ from settlement.models import Settlement
 from datetime import datetime, timezone, timedelta
 import pandas as pd
 from common.util import normalize_date, get_start_end_week_dates
+import time
 
 # Create your views here.
 def home(request):
@@ -16,16 +17,21 @@ def upload_signings(request):
         df = pd.read_excel(excel_file)
 
         dates = []
+        raw_signings = []
+        workers = {}
         for index, row in df.iterrows():
             if index > 3:
                 document = row.iloc[10]
                 name = row.iloc[2]
-                worker = Worker.objects.filter(document=document).first()
+                worker = workers[document] if workers.get(document) is not None else Worker.objects.filter(document=document).first()
                 if not worker:
                     worker = Worker.objects.create(
                         document=document,
                         name=name,
                     )
+                    workers[document] = worker
+                if workers.get(document) == None:
+                    workers[document] = worker
 
                 date_signed = row.iloc[1].replace(tzinfo=timezone(timedelta(hours=-5)))
                 normalized_date_signed = normalize_date(date_signed)
@@ -46,7 +52,7 @@ def upload_signings(request):
 
                 entry = RawSignings.objects.filter(worker=worker, date_signed=date_signed).first()
                 if not entry:
-                    RawSignings.objects.create(
+                    raw_signing = RawSignings(
                         folder_number=row.iloc[0],
                         date_signed=date_signed,
                         normalized_date_signed=normalized_date_signed,
@@ -55,14 +61,19 @@ def upload_signings(request):
                         door=row.iloc[5],
                         contract_number=row.iloc[6],
                     )
-        
+                    raw_signings.append(raw_signing)
+        RawSignings.objects.bulk_create(raw_signings)
+
+        settlements = []
         for date_range in dates:
             settlement = Settlement.objects.filter(start_date=date_range["start_date"], end_date=date_range["end_date"]).first()
             if not settlement:
-                Settlement.objects.create(
+                settlement = Settlement(
                     start_date=date_range["start_date"],
                     end_date=date_range["end_date"],
                 )
+                settlements.append(settlement)
+        Settlement.objects.bulk_create(settlements)
 
         return redirect('/settlement/')
 
