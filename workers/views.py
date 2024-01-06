@@ -16,12 +16,23 @@ def index(request):
     try:
         workers = paginator.page(page)
     except PageNotAnInteger:
-        # If page is not an integer, deliver first page
         workers = paginator.page(1)
     except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results
         workers = paginator.page(paginator.num_pages)
     return render(request, 'workers/index.html', {'workers': workers})
+
+def signings(request):
+    signings_list = RawSignings.objects.order_by('-date_signed').all()
+    signings_per_page = 20
+    paginator = Paginator(signings_list, signings_per_page)
+    page = request.GET.get('page')
+    try:
+        signings = paginator.page(page)
+    except PageNotAnInteger:
+        signings = paginator.page(1)
+    except EmptyPage:
+        signings = paginator.page(paginator.num_pages)
+    return render(request, 'workers/signings.html', {'signings': signings})
 
 def upload_signings(request):
     if request.method == 'POST' and request.FILES['excel_file']:

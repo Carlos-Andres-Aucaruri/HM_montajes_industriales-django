@@ -1,0 +1,60 @@
+{% extends 'main.html' %}
+
+{% block title %}Fichajes{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <h2 class="font-semibold text-2xl text-black">Fichajes</h2>
+</div>
+
+<div class="rounded-sm border border-cyan-900/50 bg-white px-5 pt-6 pb-2.5 shadow-md sm:px-7.5 xl:pb-1">
+    <div class="max-w-full overflow-x-auto">
+        <table class="w-full table-auto">
+            <thead>
+                <tr class="bg-gray-200 text-left">
+                    <th class="py-4 px-4 font-medium text-black">Legajo</th>
+                    <th class="py-4 px-4 font-medium text-black">Trabajador</th>
+                    <th class="py-4 px-4 font-medium text-black">C&eacute;dula</th>
+                    <th class="py-4 px-4 font-medium text-black">Fecha Fichada</th>
+                    <th class="py-4 px-4 font-medium text-black">Fecha Normalizada</th>
+                    <th class="py-4 px-4 font-medium text-black">Tipo</th>
+                    <th class="py-4 px-4 font-medium text-black">Puerta</th>
+                    <th class="py-4 px-4 font-medium text-black">No. Contrato</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for signing in signings %}
+                <tr>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.folder_number }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.worker }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.worker.document }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.date_signed }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.normalized_date_signed }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.get_signed_type_display }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.door }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ signing.contract_number }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="pagination">
+            <span class="step-links">
+                {% if signings.has_previous %}
+                    <a href="?page=1">&laquo; primera</a>
+                    <a href="?page={{ signings.previous_page_number }}">anterior</a>
+                {% endif %}
+
+                <span class="current">
+                    P&aacute;gina {{ signings.number }} de {{ signings.paginator.num_pages }}.
+                </span>
+
+                {% if signings.has_next %}
+                    <a href="?page={{ signings.next_page_number }}">siguiente</a>
+                    <a href="?page={{ signings.paginator.num_pages }}">&uacute;ltima &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+{% endblock %}
