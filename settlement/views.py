@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import pandas as pd
 from .models import Settlement, SettlementDetails
 from workers.models import Worker, RawSignings
@@ -26,10 +27,18 @@ def room(request, pk):
     context = {'room': room}
     return render(request, 'settlement/room.html', context)
 
-def settlements(request):
-    settlements = Settlement.objects.all()
-    context = {'settlements': settlements}
-    return render(request, 'settlement/index.html', context)
+def index(request):
+    settlements_list = Settlement.objects.all()
+    settlements_per_page = 20
+    paginator = Paginator(settlements_list, settlements_per_page)
+    page = request.GET.get('page')
+    try:
+        settlements = paginator.page(page)
+    except PageNotAnInteger:
+        settlements = paginator.page(1)
+    except EmptyPage:
+        settlements = paginator.page(paginator.num_pages)
+    return render(request, 'settlement/index.html', {'settlements': settlements})
 
 def view(request, pk):
     settlement = Settlement.objects.get(id=int(pk))
