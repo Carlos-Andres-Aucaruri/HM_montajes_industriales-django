@@ -21,6 +21,21 @@ def index(request):
         workers = paginator.page(paginator.num_pages)
     return render(request, 'workers/index.html', {'workers': workers})
 
+def view(request, pk):
+    worker = Worker.objects.get(id=int(pk))
+    raw_signings_list = RawSignings.objects.filter(worker=worker).order_by('-date_signed').all()
+    raw_signings_per_page = 20
+    paginator = Paginator(raw_signings_list, raw_signings_per_page)
+    page = request.GET.get('page')
+    try:
+        raw_signings = paginator.page(page)
+    except PageNotAnInteger:
+        raw_signings = paginator.page(1)
+    except EmptyPage:
+        raw_signings = paginator.page(paginator.num_pages)
+    context = {'worker': worker, 'raw_signings': raw_signings}
+    return render(request, 'workers/view.html', context)
+
 def signings(request):
     signings_list = RawSignings.objects.order_by('-date_signed').all()
     signings_per_page = 20
