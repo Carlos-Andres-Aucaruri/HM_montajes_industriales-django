@@ -106,14 +106,49 @@ def process_signing(request, pk):
         settlement.processed = True
         settlement.save()
 
-    return redirect('view', pk=settlement.id)
+    return redirect('settlement_view', pk=settlement.id)
 
 def export_settlement(request, pk):
     settlement = Settlement.objects.get(id=int(pk))
     if request.method == 'POST':
         try:
-            settlement_details = SettlementDetails.objects.filter(settlement=settlement).all()
-            df = pd.DataFrame.from_records(settlement_details.values(), exclude=['working_shifts'])
+            settlement_details = SettlementDetails.objects.filter(settlement=settlement).order_by('worker__id').all()
+            df = pd.DataFrame.from_records(settlement_details.values(
+                'worker__name',
+                'monday',
+                'tuesday',
+                'wednesday',
+                'thursday',
+                'friday',
+                'saturday',
+                'sunday',
+                'ordinary_hours',
+                'daytime_overtime',
+                'night_surcharge_hours',
+                'night_overtime',
+                'holiday_hours',
+                'night_holiday_hours',
+                'daytime_holiday_overtime',
+                'night_holiday_overtime'))
+            df = df.rename(columns={
+                'worker__name': 'Trabajador',
+                'monday': 'Lunes',
+                'tuesday': 'Martes',
+                'wednesday': 'Miércoles',
+                'thursday': 'Jueves',
+                'friday': 'Viernes',
+                'saturday': 'Sábado',
+                'sunday': 'Domingo',
+                'ordinary_hours': 'H.O',
+                'daytime_overtime': 'H.E.D',
+                'night_surcharge_hours': 'H.R.N',
+                'night_overtime': 'H.E.N',
+                'holiday_hours': 'H.F',
+                'night_holiday_hours': 'H.F.N',
+                'daytime_holiday_overtime': 'H.E.F.D',
+                'night_holiday_overtime': 'H.E.F.N',
+            })
+
             # Create an in-memory buffer for the Excel file
             excel_buffer = BytesIO()
             start_day = settlement.start_date.day
@@ -126,4 +161,4 @@ def export_settlement(request, pk):
             return response
         except Exception as e:
             print(f'There was a problem exporting the excel file: {e}')
-    return redirect('view', pk=settlement.id)
+    return redirect('settlement_view', pk=settlement.id)
