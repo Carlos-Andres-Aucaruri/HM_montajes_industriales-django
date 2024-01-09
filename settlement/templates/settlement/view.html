@@ -54,10 +54,15 @@
                     <th class="py-4 px-4 font-medium text-black">Viernes</th>
                     <th class="py-4 px-4 font-medium text-black">S&aacute;bado</th>
                     <th class="py-4 px-4 font-medium text-black">Domingo</th>
+                    <th class="py-4 px-4 font-medium text-black">Total Horas</th>
                     <th class="py-4 px-4 font-medium text-black">H.O</th>
                     <th class="py-4 px-4 font-medium text-black">H.E.D</th>
                     <th class="py-4 px-4 font-medium text-black">H.R.N</th>
                     <th class="py-4 px-4 font-medium text-black">H.E.N</th>
+                    <th class="py-4 px-4 font-medium text-black">H.F</th>
+                    <th class="py-4 px-4 font-medium text-black">H.F.N</th>
+                    <th class="py-4 px-4 font-medium text-black">H.E.F.D</th>
+                    <th class="py-4 px-4 font-medium text-black">H.E.F.N</th>
                 </tr>
             </thead>
             <tbody>
@@ -71,10 +76,15 @@
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.friday }}</td>
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.saturday }}</td>
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.sunday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.total_hours }}</td>
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.ordinary_hours }}</td>
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.daytime_overtime }}</td>
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.night_surcharge_hours }}</td>
                     <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.night_overtime }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.holiday_hours }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.night_holiday_hours }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.daytime_holiday_overtime }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.night_holiday_overtime }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
