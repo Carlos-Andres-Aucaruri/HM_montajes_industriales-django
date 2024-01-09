@@ -1,23 +1,103 @@
 {% extends 'main.html' %}
 
+{% block title %}Liquidacion {{ settlement.start_date|date:"d-m-Y" }}{% endblock %}
+
 {% block content %}
-
-<h1>Liquidacion</h1>
-
-<div>
-    <div>
-        {{settlement}}
-    </div>
-    <form method="post" action="{% url 'process-signing' settlement.id %}">
-        {% csrf_token %}
-        <button type="submit">Procesar Fichajes</button>
-    </form>
-    {% if settlement.processed %}
-        <form method="post" action="{% url 'export-settlement' settlement.id %}">
-            {% csrf_token %}
-            <button type="submit">Exportar liquidacion</button>
-        </form>
-    {% endif %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <h2 class="font-semibold text-2xl text-black">Liquidacion</h2>
 </div>
 
+<div class="flex flex-col">
+    <div class="rounded-sm border border-cyan-900/50 bg-white px-5 py-5 shadow-md sm:px-7.5 mb-2">
+        <div class="flex flex-col gap-2">
+            <span class="font-medium">
+                Fecha Inicio: {{settlement.start_date}}
+            </span>
+            <span class="font-medium">
+                Fecha Final: {{settlement.end_date}}
+            </span>
+            <form method="post" action="{% url 'process-signing' settlement.id %}">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 text-md font-semibold bg-green-400 hover:bg-green-300 hover:text-gray-900 rounded-lg">
+                    {% if settlement.processed %}
+                    Reprocesar Fichajes
+                    {% else %}
+                    Procesar Fichajes
+                    {% endif %}
+                </button>
+            </form>
+            {% if settlement.processed %}
+            <form method="post" action="{% url 'export-settlement' settlement.id %}">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 text-md font-semibold bg-blue-500 hover:bg-blue-300 text-white hover:text-gray-900 rounded-lg">
+                    Exportar liquidaci&oacute;n
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="rounded-sm border border-cyan-900/50 bg-white px-5 pt-6 pb-2.5 shadow-md sm:px-7.5">
+    {% if not settlement_details %}
+    <h3 class="bg-gray-200 text-gray-900 font-semibold text-center py-4">A&uacute;n no existen detalles procesados</h3>
+    {% else %}
+    <div class="max-w-full overflow-x-auto">
+        <table class="w-full table-auto">
+            <thead>
+                <tr class="bg-gray-200 text-left">
+                    <th class="py-4 px-4 font-medium text-black">Trabajador</th>
+                    <th class="py-4 px-4 font-medium text-black">Lunes</th>
+                    <th class="py-4 px-4 font-medium text-black">Mart&eacute;s</th>
+                    <th class="py-4 px-4 font-medium text-black">Mi&eacute;rcoles</th>
+                    <th class="py-4 px-4 font-medium text-black">Jueves</th>
+                    <th class="py-4 px-4 font-medium text-black">Viernes</th>
+                    <th class="py-4 px-4 font-medium text-black">S&aacute;bado</th>
+                    <th class="py-4 px-4 font-medium text-black">Domingo</th>
+                    <th class="py-4 px-4 font-medium text-black">H.O</th>
+                    <th class="py-4 px-4 font-medium text-black">H.E.D</th>
+                    <th class="py-4 px-4 font-medium text-black">H.R.N</th>
+                    <th class="py-4 px-4 font-medium text-black">H.E.N</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for settlement_detail in settlement_details %}
+                <tr>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.worker }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.monday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.tuesday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.wednesday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.thursday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.friday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.saturday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.sunday }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.ordinary_hours }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.daytime_overtime }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.night_surcharge_hours }}</td>
+                    <td class="border-b border-[#eee] py-3 px-4">{{ settlement_detail.night_overtime }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="pagination">
+            <span class="step-links">
+                {% if settlement_details.has_previous %}
+                    <a href="?page=1">&laquo; primera</a>
+                    <a href="?page={{ settlement_details.previous_page_number }}">anterior</a>
+                {% endif %}
+
+                <span class="current">
+                    P&aacute;gina {{ settlement_details.number }} de {{ settlement_details.paginator.num_pages }}.
+                </span>
+
+                {% if settlement_details.has_next %}
+                    <a href="?page={{ settlement_details.next_page_number }}">siguiente</a>
+                    <a href="?page={{ settlement_details.paginator.num_pages }}">&uacute;ltima &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

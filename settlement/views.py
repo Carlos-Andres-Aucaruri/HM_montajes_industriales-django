@@ -28,7 +28,7 @@ def room(request, pk):
     return render(request, 'settlement/room.html', context)
 
 def index(request):
-    settlements_list = Settlement.objects.all()
+    settlements_list = Settlement.objects.order_by('-start_date').all()
     settlements_per_page = 20
     paginator = Paginator(settlements_list, settlements_per_page)
     page = request.GET.get('page')
@@ -42,7 +42,17 @@ def index(request):
 
 def view(request, pk):
     settlement = Settlement.objects.get(id=int(pk))
-    context = {'settlement': settlement}
+    settlement_details_list = SettlementDetails.objects.filter(settlement=settlement).order_by('worker__id').all()
+    settlement_details_per_page = 20
+    paginator = Paginator(settlement_details_list, settlement_details_per_page)
+    page = request.GET.get('page')
+    try:
+        settlement_details = paginator.page(page)
+    except PageNotAnInteger:
+        settlement_details = paginator.page(1)
+    except EmptyPage:
+        settlement_details = paginator.page(paginator.num_pages)
+    context = {'settlement': settlement, 'settlement_details': settlement_details}
     return render(request, 'settlement/view.html', context)
 
 def process_signing(request, pk):
