@@ -32,6 +32,7 @@ class SettlementDetails(models.Model):
     friday = models.FloatField(default=0.0)
     saturday = models.FloatField(default=0.0)
     sunday = models.FloatField(default=0.0)
+    total_hours = models.FloatField(default=0.0)
     ordinary_hours = models.FloatField(default=0.0)
     daytime_overtime = models.FloatField(default=0.0)
     night_surcharge_hours = models.FloatField(default=0.0)
@@ -121,7 +122,10 @@ class SettlementDetails(models.Model):
             is_holiday = True if current_time.weekday() == 6 else False
             remaining_hours -= 0.5
         # print(self)
-            
+    
+    def set_total_hours(self):
+        self.total_hours = self.monday + self.tuesday + self.wednesday + self.thursday + self.friday + self.saturday + self.sunday
+
     def reset_hours(self):
         self.ordinary_hours = 0.0
         self.daytime_overtime = 0.0

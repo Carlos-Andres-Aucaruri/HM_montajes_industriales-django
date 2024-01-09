@@ -91,6 +91,7 @@ def process_signing(request, pk):
                 next_signed_type = raw_signings[index+1].signed_type
                 if next_worker_id != current_worker_id:
                     settlement_details.classify_hours(start_date_signed, current_date)
+                    settlement_details.set_total_hours()
                     settlement_details.save()
                     is_starting_new_day = True
                     continue
@@ -104,6 +105,7 @@ def process_signing(request, pk):
                             is_starting_new_day = True
             elif index == len(raw_signings)-1:
                 settlement_details.classify_hours(start_date_signed, current_date)
+                settlement_details.set_total_hours()
                 settlement_details.save()
         settlement.processed = True
         settlement.save()
@@ -124,6 +126,7 @@ def export_settlement(request, pk):
                 'friday',
                 'saturday',
                 'sunday',
+                'total_hours',
                 'ordinary_hours',
                 'daytime_overtime',
                 'night_surcharge_hours',
@@ -141,6 +144,7 @@ def export_settlement(request, pk):
                 'friday': 'Viernes',
                 'saturday': 'Sábado',
                 'sunday': 'Domingo',
+                'total_hours': 'Total Horas',
                 'ordinary_hours': 'H.O',
                 'daytime_overtime': 'H.E.D',
                 'night_surcharge_hours': 'H.R.N',
