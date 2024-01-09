@@ -121,3 +121,13 @@ class SettlementDetails(models.Model):
             is_holiday = True if current_time.weekday() == 6 else False
             remaining_hours -= 0.5
         # print(self)
+            
+    def reset_hours(self):
+        self.ordinary_hours = 0.0
+        self.daytime_overtime = 0.0
+        self.night_surcharge_hours = 0.0
+        self.night_overtime = 0.0
+        self.holiday_hours = 0.0
+        self.night_holiday_hours = 0.0
+        self.daytime_holiday_overtime = 0.0
+        self.night_holiday_overtime = 0.0

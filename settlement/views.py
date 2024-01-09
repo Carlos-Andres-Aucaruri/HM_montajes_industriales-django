@@ -75,6 +75,8 @@ def process_signing(request, pk):
                     settlement=settlement,
                     worker=raw_signing.worker
                 )
+                if not created:
+                    settlement_details.reset_hours()
 
             current_date = raw_signing.get_original_normalized_date_signed()
             is_inside = True if raw_signing.signed_type == "E" else False
