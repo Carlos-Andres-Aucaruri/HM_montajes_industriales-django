@@ -7,7 +7,6 @@ from datetime import datetime, timezone, timedelta
 import pandas as pd
 from common.util import normalize_date, get_start_end_week_dates
 
-# Create your views here.
 def index(request):
     workers_list = Worker.objects.all()
     workers_per_page = 20
@@ -55,7 +54,6 @@ def upload_signings(request):
         df = pd.read_excel(excel_file)
 
         dates = []
-        raw_signings = []
         workers = {}
         for index, row in df.iterrows():
             if index > 3:
@@ -72,8 +70,8 @@ def upload_signings(request):
                     workers[document] = worker
 
                 date_signed = row.iloc[1].replace(tzinfo=timezone(timedelta(hours=-5)))
-                normalized_date_signed = normalize_date(date_signed)
                 signed_type="E" if row.iloc[4] == "entrada" else "S"
+                normalized_date_signed = normalize_date(date_signed, signed_type)
 
                 if not dates:
                     start_date, end_date = get_start_end_week_dates(normalized_date_signed)
@@ -88,19 +86,16 @@ def upload_signings(request):
                         start_date, end_date = get_start_end_week_dates(normalized_date_signed)
                         dates.append({"start_date": start_date, "end_date": end_date})
 
-                entry = RawSignings.objects.filter(worker=worker, date_signed=date_signed).first()
-                if not entry:
-                    raw_signing = RawSignings(
-                        folder_number=row.iloc[0],
-                        date_signed=date_signed,
-                        normalized_date_signed=normalized_date_signed,
-                        worker=worker,
-                        signed_type=signed_type,
-                        door=row.iloc[5],
-                        contract_number=row.iloc[6],
-                    )
-                    raw_signings.append(raw_signing)
-        RawSignings.objects.bulk_create(raw_signings)
+                raw_signing, created = RawSignings.objects.get_or_create(
+                    folder_number=row.iloc[0],
+                    date_signed=date_signed,
+                    worker=worker,
+                    signed_type=signed_type,
+                    door=row.iloc[5],
+                    contract_number=row.iloc[6],
+                )
+                raw_signing.normalized_date_signed = normalized_date_signed
+                raw_signing.save()
 
         settlements = []
         for date_range in dates:
