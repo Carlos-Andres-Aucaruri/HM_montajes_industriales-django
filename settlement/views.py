@@ -14,7 +14,6 @@ rooms = [
     {'id': 3, 'name': 'Frontend developers'},
 ]
 
-# Create your views here.
 def home(request):
     context = {'rooms': rooms}
     return render(request, 'settlement/home.html', context)
@@ -65,7 +64,6 @@ def process_signing(request, pk):
         current_worker_id = 0
         settlement_details = None
         for index, raw_signing in enumerate(raw_signings):
-            # print(raw_signing.get_original_normalized_date_signed(), raw_signing.signed_type, raw_signing.worker.name)
             if is_starting_new_day and raw_signing.signed_type == "S":
                 continue
 
@@ -81,10 +79,15 @@ def process_signing(request, pk):
             current_date = raw_signing.get_original_normalized_date_signed()
             is_inside = True if raw_signing.signed_type == "E" else False
 
+            if settlement.end_date.day == current_date.day and is_inside:
+                # Fixes bug of counting next monday entry
+                continue
+
             if is_starting_new_day and is_inside:
                 start_date_signed = current_date
                 is_starting_new_day = False
 
+            # print(raw_signing.get_original_normalized_date_signed(), raw_signing.signed_type, raw_signing.worker.name)
             if index+1 < len(raw_signings):
                 next_worker_id = raw_signings[index+1].worker.id
                 next_date = raw_signings[index+1].get_original_normalized_date_signed()
@@ -102,6 +105,8 @@ def process_signing(request, pk):
                             # The worker is not inside and their next signing was in another day
                             # We can classify the hours now
                             settlement_details.classify_hours(start_date_signed, current_date)
+                            settlement_details.set_total_hours()
+                            settlement_details.save()
                             is_starting_new_day = True
             elif index == len(raw_signings)-1:
                 settlement_details.classify_hours(start_date_signed, current_date)

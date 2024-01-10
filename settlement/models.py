@@ -50,7 +50,7 @@ class SettlementDetails(models.Model):
         return f'HO: {self.ordinary_hours} | HED: {self.daytime_overtime} | HRN: {self.night_surcharge_hours} | HEN: {self.night_overtime} | HF: {self.holiday_hours} | HFN: {self.night_holiday_hours} | HEFD: {self.daytime_holiday_overtime} | HEFN: {self.night_holiday_overtime}'
     
     def set_working_shift_day(self, start_date: datetime, end_date: datetime, total_hours: float):
-        working_shift = {'start': start_date, 'end': start_date}
+        working_shift = {'start': start_date, 'end': end_date}
         if start_date.weekday() == 0:
             self.monday = total_hours
             self.working_shifts['monday'] = working_shift

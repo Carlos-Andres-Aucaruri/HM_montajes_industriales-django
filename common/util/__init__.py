@@ -1,20 +1,32 @@
 from datetime import datetime, timedelta
 
-def normalize_date(datetime: datetime) -> datetime:
-    if datetime.minute > 53:
-        # goes to next hour and 30
-        datetime = datetime + timedelta(hours=1)
-        datetime = datetime.replace(minute=30, second=0)
-        return datetime
-    if datetime.minute <= 23:
-        # goes to hour and 30
-        datetime = datetime.replace(minute=30, second=0)
-        return datetime
-    if 23 < datetime.minute <= 53:
-        # goes to next hour o'clock
-        datetime = datetime + timedelta(hours=1)
-        datetime = datetime.replace(minute=0, second=0)
-        return datetime
+def normalize_date(datetime: datetime, signed_type: str) -> datetime:
+    if signed_type == 'E':
+        if 0 <= datetime.minute <= 6:
+            # goes to hour o'clock
+            datetime = datetime.replace(minute=0, second=0)
+        elif 6 < datetime.minute < 36:
+            # goes to hour and half
+            datetime = datetime.replace(minute=30, second=0)
+        elif 36 <= datetime.minute <= 59:
+            # goes to next hour o'clock
+            datetime = datetime + timedelta(hours=1)
+            datetime = datetime.replace(minute=0, second=0)
+    elif signed_type == 'S':
+        if 0 <= datetime.minute <= 15:
+            # goes to hour o'clock
+            datetime = datetime.replace(minute=0, second=0)
+        elif 15 < datetime.minute < 36:
+            # goes to hour and half
+            datetime = datetime.replace(minute=30, second=0)
+        elif 36 <= datetime.minute <= 59:
+            # goes to next hour o'clock
+            datetime = datetime + timedelta(hours=1)
+            datetime = datetime.replace(minute=0, second=0)
+        
+        if 6 <= datetime.hour <= 7:
+            #Fixes outcome of worker when its 6 am of next day
+            datetime = datetime.replace(hour=6, minute=0)
     return datetime
 
 def get_start_end_week_dates(datetime: datetime):
