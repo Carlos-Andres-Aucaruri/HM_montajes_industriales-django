@@ -76,7 +76,6 @@ class SettlementDetails(models.Model):
     def classify_hours(self, start_date: datetime, end_date: datetime):
         # print(f'SHIFT STARTED AT {start_date} AND FINISHED AT {end_date}')
         total_hours = get_hours_difference(start_date, end_date)
-        self.set_working_shift_day(start_date, end_date, total_hours)
         starting_day_time = datetime(start_date.year, start_date.month, start_date.day, 6, 0, 0, 0, start_date.tzinfo)
         finishing_day_time = starting_day_time + timedelta(days=1)
         # Lunch time between 12 and 1 pm not included when adding hours
@@ -87,6 +86,7 @@ class SettlementDetails(models.Model):
         end_eat_time = start_eat_time + timedelta(hours=1)
         remaining_hours = total_hours
         normal_hours = 0.0
+        total_hours = 0.0
         current_time = start_date
         is_holiday = True if current_time.weekday() == 6 else False
         while remaining_hours > 0.0:
@@ -120,7 +120,9 @@ class SettlementDetails(models.Model):
                         self.night_overtime += 0.5
             current_time = current_time + timedelta(minutes=30)
             is_holiday = True if current_time.weekday() == 6 else False
+            total_hours += 0.5
             remaining_hours -= 0.5
+        self.set_working_shift_day(start_date, end_date, total_hours)
         # print(self)
     
     def set_total_hours(self):
