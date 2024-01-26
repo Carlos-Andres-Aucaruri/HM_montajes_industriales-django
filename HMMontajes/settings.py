@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'settlement.apps.SettlementConfig',
     'workers.apps.WorkersConfig',
+    'holidays.apps.HolidaysConfig',
 ]
 
 MIDDLEWARE = [
