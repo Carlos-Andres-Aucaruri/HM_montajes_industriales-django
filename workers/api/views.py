@@ -32,3 +32,10 @@ def getSignings(request):
     signings = RawSignings.objects.all()
     serializer = RawSigningsSerializer(signings, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def getSigningsByWorker(request, worker_id):
+    worker = Worker.objects.get(id=int(worker_id))
+    signings = RawSignings.objects.filter(worker=worker).all()
+    serializer = RawSigningsSerializer(signings, many=True)
+    return Response(serializer.data)
