@@ -7,7 +7,6 @@ from datetime import datetime, timezone, timedelta
 import pandas as pd
 from common.util import normalize_date, get_start_end_week_dates
 from rest_framework import viewsets
-from rest_framework.views import APIView
 from .serializers import WorkerSerializer, RawSigningsSerializer
 
 def index(request):
@@ -118,3 +117,7 @@ def upload_signings(request):
 class WorkerView(viewsets.ModelViewSet):
     serializer_class = WorkerSerializer
     queryset = Worker.objects.all()
+
+class SigningView(viewsets.ModelViewSet):
+    serializer_class = RawSigningsSerializer
+    queryset = RawSignings.objects.all()
