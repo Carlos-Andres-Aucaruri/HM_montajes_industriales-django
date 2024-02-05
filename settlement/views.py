@@ -7,24 +7,8 @@ from workers.models import Worker, RawSignings
 from datetime import datetime
 from common.util import get_hours_difference
 from io import BytesIO
-
-rooms = [
-    {'id': 1, 'name': 'Lets learn Python!'},
-    {'id': 2, 'name': 'Design with me'},
-    {'id': 3, 'name': 'Frontend developers'},
-]
-
-def home(request):
-    context = {'rooms': rooms}
-    return render(request, 'settlement/home.html', context)
-
-def room(request, pk):
-    room = None
-    for i in rooms:
-        if i['id'] == int(pk):
-            room = i
-    context = {'room': room}
-    return render(request, 'settlement/room.html', context)
+from rest_framework import viewsets
+from .serializers import SettlementSerializer, SettlementDetailsSerializer
 
 def index(request):
     settlements_list = Settlement.objects.order_by('-start_date').all()
@@ -173,3 +157,11 @@ def export_settlement(request, pk):
         except Exception as e:
             print(f'There was a problem exporting the excel file: {e}')
     return redirect('settlement_view', pk=settlement.id)
+
+class SettlementView(viewsets.ModelViewSet):
+    serializer_class = SettlementSerializer
+    queryset = Settlement.objects.all()
+
+class SettlementDetailView(viewsets.ModelViewSet):
+    serializer_class = SettlementDetailsSerializer
+    queryset = SettlementDetails.objects.all()
