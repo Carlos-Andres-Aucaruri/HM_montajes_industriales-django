@@ -2,6 +2,7 @@ from django.db import models
 from django.core.serializers.json import DjangoJSONEncoder
 from datetime import datetime, timedelta
 from common.util import get_hours_difference
+from holidays.models import Holiday
 
 class Settlement(models.Model):
     start_date = models.DateTimeField()
@@ -73,9 +74,14 @@ class SettlementDetails(models.Model):
             self.sunday = total_hours
             self.working_shifts['sunday'] = working_shift
 
+    '''
+    Classifies hours per day using a day shift and saves the dayshift in working_shifts
+    '''
     def classify_hours(self, start_date: datetime, end_date: datetime):
         # print(f'SHIFT STARTED AT {start_date} AND FINISHED AT {end_date}')
         total_hours = get_hours_difference(start_date, end_date)
+        food_included = False if total_hours > 8 else True
+        # comprobar con total_hours si salta la hora de almuerzo o comida
         starting_day_time = datetime(start_date.year, start_date.month, start_date.day, 6, 0, 0, 0, start_date.tzinfo)
         finishing_day_time = starting_day_time + timedelta(days=1)
         # Lunch time between 12 and 1 pm not included when adding hours
@@ -88,11 +94,39 @@ class SettlementDetails(models.Model):
         normal_hours = 0.0
         total_hours = 0.0
         current_time = start_date
-        is_holiday = True if current_time.weekday() == 6 else False
+        holiday_dict = self.get_week_holidays()
+        is_holiday = self.is_holiday(holiday_dict, current_time)
         while remaining_hours > 0.0:
             if (start_lunch_time <= current_time < end_lunch_time) or (start_eat_time <= current_time < end_eat_time):
                 current_time = current_time + timedelta(minutes=30)
                 remaining_hours -= 0.5
+                if food_included:
+                    total_hours += 0.5
+                    if current_time < start_eat_time:
+                        if normal_hours < 8:
+                            if is_holiday:
+                                self.holiday_hours += 0.5
+                            else:
+                                self.ordinary_hours += 0.5
+                            normal_hours += 0.5
+                        else:
+                            if is_holiday:
+                                self.daytime_holiday_overtime += 0.5
+                            else:
+                                self.daytime_overtime += 0.5
+                    else:
+                        if normal_hours < 8:
+                            if is_holiday:
+                                self.night_holiday_hours += 0.5
+                            else:
+                                self.night_surcharge_hours += 0.5
+                            normal_hours += 0.5
+                        else:
+                            if is_holiday:
+                                self.night_holiday_overtime += 0.5
+                            else:
+                                self.night_overtime += 0.5
+                        
                 continue
             if (starting_day_time <= current_time < start_eat_time) or (current_time >= finishing_day_time):
                 if normal_hours < 8:
@@ -119,7 +153,7 @@ class SettlementDetails(models.Model):
                     else:
                         self.night_overtime += 0.5
             current_time = current_time + timedelta(minutes=30)
-            is_holiday = True if current_time.weekday() == 6 else False
+            is_holiday = self.is_holiday(holiday_dict, current_time)
             total_hours += 0.5
             remaining_hours -= 0.5
         self.set_working_shift_day(start_date, end_date, total_hours)
@@ -137,3 +171,19 @@ class SettlementDetails(models.Model):
         self.night_holiday_hours = 0.0
         self.daytime_holiday_overtime = 0.0
         self.night_holiday_overtime = 0.0
+
+    def get_week_holidays(self):
+        start_date = self.settlement.start_date
+        end_date = self.settlement.end_date
+        start_date = datetime(start_date.year, start_date.month, start_date.day)
+        end_date = datetime(end_date.year, end_date.month, end_date.day)
+        holidays_list = Holiday.objects.filter(holiday_date__range=(start_date, end_date)).all()
+        holiday_dict = {holiday.holiday_date.strftime("%Y-%m-%d"): (holiday.holiday_date, holiday.holiday_name) for holiday in holidays_list}
+        return holiday_dict
+
+    def is_holiday(self, holiday_dict, date):
+        if date.weekday() == 6:
+            return True
+        if date.strftime("%Y-%m-%d") in holiday_dict:
+            return True
+        return False
