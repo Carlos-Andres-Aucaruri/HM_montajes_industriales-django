@@ -1,3 +1,7 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from .serializers import HolidaySerializer
+from .models import Holiday
 
-# Create your views here.
+class HolidayView(viewsets.ModelViewSet):
+    serializer_class = HolidaySerializer
+    queryset = Holiday.objects.all()
