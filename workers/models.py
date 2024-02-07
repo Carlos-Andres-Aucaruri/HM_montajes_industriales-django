@@ -14,7 +14,7 @@ class RawSignings(models.Model):
     folder_number = models.PositiveBigIntegerField()
     date_signed = models.DateTimeField()
     normalized_date_signed = models.DateTimeField(null=True)
-    worker = models.ForeignKey(Worker, on_delete=models.CASCADE)
+    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name='signings')
     SIGNED_TYPES = {
         "E": "Entrada",
         "S": "Salida",

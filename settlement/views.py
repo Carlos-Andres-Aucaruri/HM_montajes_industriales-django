@@ -105,6 +105,7 @@ def export_settlement(request, pk):
     settlement = Settlement.objects.get(id=int(pk))
     if request.method == 'POST':
         try:
+            days_dict = settlement.get_days_dict()
             settlement_details = SettlementDetails.objects.filter(settlement=settlement).order_by('worker__id').all()
             df = pd.DataFrame.from_records(settlement_details.values(
                 'worker__name',
@@ -126,13 +127,13 @@ def export_settlement(request, pk):
                 'night_holiday_overtime'))
             df = df.rename(columns={
                 'worker__name': 'Trabajador',
-                'monday': 'Lunes',
-                'tuesday': 'Martes',
-                'wednesday': 'Miércoles',
-                'thursday': 'Jueves',
-                'friday': 'Viernes',
-                'saturday': 'Sábado',
-                'sunday': 'Domingo',
+                'monday': f'Lunes {days_dict["monday"]}',
+                'tuesday': f'Martes {days_dict["tuesday"]}',
+                'wednesday': f'Miércoles {days_dict["wednesday"]}',
+                'thursday': f'Jueves {days_dict["thursday"]}',
+                'friday': f'Viernes {days_dict["friday"]}',
+                'saturday': f'Sábado {days_dict["saturday"]}',
+                'sunday': f'Domingo {days_dict["sunday"]}',
                 'total_hours': 'Total Horas',
                 'ordinary_hours': 'H.O',
                 'daytime_overtime': 'H.E.D',
@@ -149,7 +150,16 @@ def export_settlement(request, pk):
             start_day = settlement.start_date.day
             end_day = settlement.end_date.day
             filename = f'LIQ. SEM {start_day}-AL-{end_day}-{settlement.start_date.month}.xlsx'
-            df.to_excel(excel_buffer)
+
+            with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Liquidación')
+
+                # Adjust the width of the columns
+                for column in df.columns:
+                    column_length = max(df[column].astype(str).map(len).max(), len(column))
+                    col_idx = df.columns.get_loc(column)
+                    writer.sheets['Liquidación'].set_column(col_idx, col_idx, column_length + 2)
+                
             response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             response.write(excel_buffer.getvalue())

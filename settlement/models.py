@@ -12,6 +12,15 @@ class Settlement(models.Model):
     def __str__(self) -> str:
         return f'{self.start_date} - {self.end_date}'
 
+    def get_days_dict(self):
+        days_dict = {}
+        current_date = self.start_date
+        while current_date < self.end_date:
+            day_name = current_date.strftime('%A').lower()
+            days_dict[day_name] = current_date.day
+            current_date += timedelta(days=1)
+        return days_dict
+
 class SettlementDetails(models.Model):
     def working_shifts_default():
         return {
