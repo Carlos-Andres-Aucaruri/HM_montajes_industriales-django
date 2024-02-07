@@ -129,3 +129,4 @@ class WorkerView(viewsets.ModelViewSet):
 class SigningView(viewsets.ModelViewSet):
     serializer_class = RawSigningsSerializer
     queryset = RawSignings.objects.all()
+    permission_classes = [AllowAny]
