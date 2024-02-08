@@ -33,7 +33,7 @@ class SettlementDetails(models.Model):
             'sunday': None,
         }
 
-    settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE)
+    settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name='details')
     worker = models.ForeignKey("workers.Worker", on_delete=models.CASCADE)
     monday = models.FloatField(default=0.0)
     tuesday = models.FloatField(default=0.0)

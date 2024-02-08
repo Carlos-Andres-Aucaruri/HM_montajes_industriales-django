@@ -9,7 +9,7 @@ from common.util import get_hours_difference
 from io import BytesIO
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
-from .serializers import SettlementSerializer, SettlementDetailsSerializer
+from .serializers import SettlementsSerializer, SettlementSerializer, SettlementDetailsSerializer
 
 def index(request):
     settlements_list = Settlement.objects.order_by('-start_date').all()
@@ -170,9 +170,14 @@ def export_settlement(request, pk):
     return redirect('settlement_view', pk=settlement.id)
 
 class SettlementView(viewsets.ModelViewSet):
-    serializer_class = SettlementSerializer
+    serializer_class = SettlementsSerializer
     queryset = Settlement.objects.all()
     permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return SettlementSerializer
+        return SettlementsSerializer
 
 class SettlementDetailView(viewsets.ModelViewSet):
     serializer_class = SettlementDetailsSerializer

@@ -1,12 +1,27 @@
 from rest_framework.serializers import ModelSerializer
 from .models import Settlement, SettlementDetails
-
-class SettlementSerializer(ModelSerializer):
-    class Meta:
-        model = Settlement
-        fields = '__all__'
+from workers.serializers import WorkersSerializer
 
 class SettlementDetailsSerializer(ModelSerializer):
+    worker_info = WorkersSerializer(source='worker', read_only=True)
+
     class Meta:
         model = SettlementDetails
+        fields = ['id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'total_hours', 'ordinary_hours', 'daytime_overtime', 'night_surcharge_hours', 'night_overtime', 'holiday_hours', 'night_holiday_hours', 'daytime_holiday_overtime', 'night_holiday_overtime', 'working_shifts', 'worker', 'worker_info']
+    
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response['worker_info'] = WorkersSerializer(instance.worker).data
+        return response
+
+class SettlementSerializer(ModelSerializer):
+    details = SettlementDetailsSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Settlement
+        fields = ['id', 'start_date', 'end_date', 'processed', 'details']
+
+class SettlementsSerializer(ModelSerializer):
+    class Meta:
+        model = Settlement
         fields = '__all__'
