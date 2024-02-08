@@ -9,7 +9,7 @@ from common.util import normalize_date, get_start_end_week_dates
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from .serializers import WorkerSerializer, WorkersSerializer, RawSigningsSerializer
+from .serializers import WorkerSerializer, WorkersSerializer, RawSigningsSerializer, RawSigningsSerializerFull
 
 def index(request):
     workers_list = Worker.objects.all()
@@ -129,3 +129,9 @@ class WorkerView(viewsets.ModelViewSet):
 class SigningView(viewsets.ModelViewSet):
     serializer_class = RawSigningsSerializer
     queryset = RawSignings.objects.all()
+    permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return RawSigningsSerializerFull
+        return RawSigningsSerializer
