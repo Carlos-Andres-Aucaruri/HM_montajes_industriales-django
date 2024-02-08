@@ -17,3 +17,10 @@ class WorkersSerializer(ModelSerializer):
     class Meta:
         model = Worker
         fields = '__all__'
+
+class RawSigningsSerializerFull(ModelSerializer):
+    worker_info = WorkersSerializer(source='worker', read_only=True)
+
+    class Meta:
+        model = RawSignings
+        fields = ['id', 'folder_number', 'date_signed', 'normalized_date_signed', 'signed_type', 'door', 'contract_number', 'worker', 'worker_info']
