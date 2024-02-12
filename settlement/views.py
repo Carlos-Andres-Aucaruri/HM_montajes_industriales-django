@@ -44,12 +44,13 @@ def process_signing(request, pk):
     if request.method == 'POST':
         raw_signings = RawSignings.objects.filter(normalized_date_signed__range=(settlement.start_date, settlement.end_date)).order_by('worker__id', 'normalized_date_signed').all()
         is_starting_new_day = True
-        start_date_signed = None
+        start_datetime_signed = None
         is_inside = True
         current_worker_id = 0
         settlement_details = None
         for index, raw_signing in enumerate(raw_signings):
             if is_starting_new_day and raw_signing.signed_type == "S":
+                # Fixes raw_signings when worker is leaving on monday at 6am, so we skip this row
                 continue
 
             if raw_signing.worker.id != current_worker_id:
@@ -58,43 +59,47 @@ def process_signing(request, pk):
                     settlement=settlement,
                     worker=raw_signing.worker
                 )
+                settlement_details.set_week_holidays()
+                settlement_details.set_weekly_hours_needed()
                 if not created:
                     settlement_details.reset_hours()
 
-            current_date = raw_signing.get_original_normalized_date_signed()
+            current_datetime = raw_signing.get_original_normalized_date_signed()
             is_inside = True if raw_signing.signed_type == "E" else False
 
-            if settlement.end_date.day == current_date.day and is_inside:
+            if settlement.end_date.day == current_datetime.day and is_inside:
                 # Fixes bug of counting next monday entry
                 continue
 
             if is_starting_new_day and is_inside:
-                start_date_signed = current_date
+                start_datetime_signed = current_datetime
                 is_starting_new_day = False
 
-            # print(raw_signing.get_original_normalized_date_signed(), raw_signing.signed_type, raw_signing.worker.name)
             if index+1 < len(raw_signings):
                 next_worker_id = raw_signings[index+1].worker.id
-                next_date = raw_signings[index+1].get_original_normalized_date_signed()
+                next_datetime_signed = raw_signings[index+1].get_original_normalized_date_signed()
                 next_signed_type = raw_signings[index+1].signed_type
                 if next_worker_id != current_worker_id:
-                    settlement_details.classify_hours(start_date_signed, current_date)
+                    # Condition that ends the week, so the settlement_detail is saved
+                    settlement_details.classify_hours(start_datetime_signed, current_datetime)
                     settlement_details.set_total_hours()
                     settlement_details.save()
                     is_starting_new_day = True
                     continue
                 if not is_inside:
                     if next_signed_type == "E":
-                        hours = get_hours_difference(current_date, next_date)
+                        hours = get_hours_difference(current_datetime, next_datetime_signed)
                         if hours > 4:
+                            # Condition that ends the day, so the working shift is saved
                             # The worker is not inside and their next signing was in another day
                             # We can classify the hours now
-                            settlement_details.classify_hours(start_date_signed, current_date)
+                            settlement_details.classify_hours(start_datetime_signed, current_datetime)
                             settlement_details.set_total_hours()
                             settlement_details.save()
                             is_starting_new_day = True
             elif index == len(raw_signings)-1:
-                settlement_details.classify_hours(start_date_signed, current_date)
+                # Condition that shows the end of the signings
+                settlement_details.classify_hours(start_datetime_signed, current_datetime)
                 settlement_details.set_total_hours()
                 settlement_details.save()
         settlement.processed = True
