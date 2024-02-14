@@ -210,7 +210,8 @@ def process_settlement(request):
     pk = request.data['id']
     settlement = Settlement.objects.get(id=int(pk))
     process_settlement_signings(settlement)
-    return Response({'status': status.HTTP_200_OK})
+    serializer = SettlementSerializer(settlement)
+    return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
