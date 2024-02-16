@@ -53,6 +53,11 @@ class SettlementDetails(models.Model):
     night_holiday_overtime = models.FloatField(default=0.0)
     working_shifts = models.JSONField(encoder=DjangoJSONEncoder, default=working_shifts_default)
 
+    # This variable should be a constant elsewhere
+    __weekly_hours_needed = 47
+    __weekly_hours_completed = 0
+    __holiday_dict = {}
+
     class Meta:
         verbose_name_plural = 'Settlement details'
 
@@ -86,88 +91,67 @@ class SettlementDetails(models.Model):
     '''
     Classifies hours per day using a day shift and saves the dayshift in working_shifts
     '''
-    def classify_hours(self, start_date: datetime, end_date: datetime):
-        # print(f'SHIFT STARTED AT {start_date} AND FINISHED AT {end_date}')
-        total_hours = get_hours_difference(start_date, end_date)
-        food_included = False if total_hours > 8 else True
-        # comprobar con total_hours si salta la hora de almuerzo o comida
-        starting_day_time = datetime(start_date.year, start_date.month, start_date.day, 6, 0, 0, 0, start_date.tzinfo)
-        finishing_day_time = starting_day_time + timedelta(days=1)
-        # Lunch time between 12 and 1 pm not included when adding hours
-        start_lunch_time = datetime(start_date.year, start_date.month, start_date.day, 12, 0, 0, 0, start_date.tzinfo)
-        end_lunch_time = start_lunch_time + timedelta(hours=1)
-        # Eating time between 9 and 10 pm not included when adding hours
-        start_eat_time = datetime(start_date.year, start_date.month, start_date.day, 21, 0, 0, 0, start_date.tzinfo)
-        end_eat_time = start_eat_time + timedelta(hours=1)
-        remaining_hours = total_hours
-        normal_hours = 0.0
-        total_hours = 0.0
-        current_time = start_date
-        holiday_dict = self.get_week_holidays()
-        is_holiday = self.is_holiday(holiday_dict, current_time)
+    def classify_hours(self, start_day_time: datetime, end_day_time: datetime):
+        # print(f'SHIFT STARTED AT {start_day_time} AND FINISHED AT {end_day_time}')
+        total_day_hours = get_hours_difference(start_day_time, end_day_time)
+        is_food_included = False if total_day_hours > 8 else True
+
+        start_day = datetime(start_day_time.year, start_day_time.month, start_day_time.day, 6, 0, 0, 0, start_day_time.tzinfo)
+        end_day = start_day + timedelta(days=1)
+        # Lunch time between 12 and 1 pm added only when is_food_included
+        start_lunch = datetime(start_day_time.year, start_day_time.month, start_day_time.day, 12, 0, 0, 0, start_day_time.tzinfo)
+        end_lunch = start_lunch + timedelta(hours=1)
+        # Eating time between 9 and 10 pm added only when is_food_included
+        start_dinner = datetime(start_day_time.year, start_day_time.month, start_day_time.day, 21, 0, 0, 0, start_day_time.tzinfo)
+        end_dinner = start_dinner + timedelta(hours=1)
+
+        remaining_hours = total_day_hours
+        total_day_hours = 0.0
+        current_time = start_day_time
+        is_holiday = self.is_holiday(current_time)
         while remaining_hours > 0.0:
-            if (start_lunch_time <= current_time < end_lunch_time) or (start_eat_time <= current_time < end_eat_time):
+            if (start_lunch <= current_time < end_lunch) or (start_dinner <= current_time < end_dinner):
                 current_time = current_time + timedelta(minutes=30)
                 remaining_hours -= 0.5
-                if food_included:
-                    total_hours += 0.5
-                    if current_time < start_eat_time:
-                        if normal_hours < 8:
-                            if is_holiday:
-                                self.holiday_hours += 0.5
-                            else:
-                                self.ordinary_hours += 0.5
-                            normal_hours += 0.5
-                        else:
-                            if is_holiday:
-                                self.daytime_holiday_overtime += 0.5
-                            else:
-                                self.daytime_overtime += 0.5
-                    else:
-                        if normal_hours < 8:
-                            if is_holiday:
-                                self.night_holiday_hours += 0.5
-                            else:
-                                self.night_surcharge_hours += 0.5
-                            normal_hours += 0.5
-                        else:
-                            if is_holiday:
-                                self.night_holiday_overtime += 0.5
-                            else:
-                                self.night_overtime += 0.5
-                        
+                if is_food_included:
+                    total_day_hours += 0.5
+                    is_daytime = current_time < start_dinner
+                    self.__increase_hours(is_daytime, is_holiday)
                 continue
-            if (starting_day_time <= current_time < start_eat_time) or (current_time >= finishing_day_time):
-                if normal_hours < 8:
-                    if is_holiday:
-                        self.holiday_hours += 0.5
-                    else:
-                        self.ordinary_hours += 0.5
-                    normal_hours += 0.5
-                else:
-                    if is_holiday:
-                        self.daytime_holiday_overtime += 0.5
-                    else:
-                        self.daytime_overtime += 0.5
-            else:
-                if normal_hours < 8:
-                    if is_holiday:
-                        self.night_holiday_hours += 0.5
-                    else:
-                        self.night_surcharge_hours += 0.5
-                    normal_hours += 0.5
-                else:
-                    if is_holiday:
-                        self.night_holiday_overtime += 0.5
-                    else:
-                        self.night_overtime += 0.5
+            is_daytime = (start_day <= current_time < start_dinner) or (current_time >= end_day)
+            self.__increase_hours(is_daytime, is_holiday)
             current_time = current_time + timedelta(minutes=30)
-            is_holiday = self.is_holiday(holiday_dict, current_time)
-            total_hours += 0.5
+            is_holiday = self.is_holiday(current_time)
+            total_day_hours += 0.5
             remaining_hours -= 0.5
-        self.set_working_shift_day(start_date, end_date, total_hours)
-        # print(self)
-    
+        self.set_working_shift_day(start_day_time, end_day_time, total_day_hours)
+
+    def __increase_hours(self, is_daytime: bool, is_holiday: bool):
+        if is_daytime:
+            if self.__weekly_hours_completed < self.__weekly_hours_needed:
+                if is_holiday:
+                    self.holiday_hours += 0.5
+                else:
+                    self.ordinary_hours += 0.5
+                    self.__weekly_hours_completed += 0.5
+            else:
+                if is_holiday:
+                    self.daytime_holiday_overtime += 0.5
+                else:
+                    self.daytime_overtime += 0.5
+        else:
+            if self.__weekly_hours_completed < self.__weekly_hours_needed:
+                if is_holiday:
+                    self.night_holiday_hours += 0.5
+                else:
+                    self.night_surcharge_hours += 0.5
+                    self.__weekly_hours_completed += 0.5
+            else:
+                if is_holiday:
+                    self.night_holiday_overtime += 0.5
+                else:
+                    self.night_overtime += 0.5
+
     def set_total_hours(self):
         self.total_hours = self.monday + self.tuesday + self.wednesday + self.thursday + self.friday + self.saturday + self.sunday
 
@@ -181,18 +165,26 @@ class SettlementDetails(models.Model):
         self.daytime_holiday_overtime = 0.0
         self.night_holiday_overtime = 0.0
 
-    def get_week_holidays(self):
+    def set_week_holidays(self):
         start_date = self.settlement.start_date
         end_date = self.settlement.end_date
         start_date = datetime(start_date.year, start_date.month, start_date.day)
         end_date = datetime(end_date.year, end_date.month, end_date.day)
         holidays_list = Holiday.objects.filter(holiday_date__range=(start_date, end_date)).all()
-        holiday_dict = {holiday.holiday_date.strftime("%Y-%m-%d"): (holiday.holiday_date, holiday.holiday_name) for holiday in holidays_list}
-        return holiday_dict
+        self.__holiday_dict = {holiday.holiday_date.strftime("%Y-%m-%d"): holiday.holiday_date for holiday in holidays_list}
 
-    def is_holiday(self, holiday_dict, date):
+    def is_holiday(self, date):
         if date.weekday() == 6:
             return True
-        if date.strftime("%Y-%m-%d") in holiday_dict:
+        if date.strftime("%Y-%m-%d") in self.__holiday_dict:
             return True
         return False
+
+    def set_weekly_hours_needed(self):
+        for index, holiday_date in self.__holiday_dict.items():
+            if holiday_date.weekday() == 6:
+                continue
+            if self.__weekly_hours_needed == 47:
+                self.__weekly_hours_needed -= 7
+            else:
+                self.__weekly_hours_needed -= 8

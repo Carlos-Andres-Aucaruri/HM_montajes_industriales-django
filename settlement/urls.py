@@ -12,4 +12,6 @@ urlpatterns = [
     path('process-signing/<str:pk>', views.process_signing, name="process-signing"),
     path('export-settlement/<str:pk>', views.export_settlement, name="export-settlement"),
     path('api/v1/', include(router.urls)),
+    path('api/v1/process/', views.process_settlement, name="process_settlement"),
+    path('api/v1/export/', views.export_settlement, name="export_settlement"),
 ]
