@@ -24,13 +24,13 @@ class Settlement(models.Model):
 class SettlementDetails(models.Model):
     def working_shifts_default():
         return {
-            'monday': None,
-            'tuesday': None,
-            'wednesday': None,
-            'thursday': None,
-            'friday': None,
-            'saturday': None,
-            'sunday': None,
+            'monday': {'start': '', 'end': ''},
+            'tuesday': {'start': '', 'end': ''},
+            'wednesday': {'start': '', 'end': ''},
+            'thursday': {'start': '', 'end': ''},
+            'friday': {'start': '', 'end': ''},
+            'saturday': {'start': '', 'end': ''},
+            'sunday': {'start': '', 'end': ''},
         }
 
     settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name='details')
