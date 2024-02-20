@@ -12,6 +12,11 @@ class WorkerSerializer(ModelSerializer):
     class Meta:
         model = Worker
         fields = ['id', 'document', 'name', 'signings']
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['signings'] = sorted(representation['signings'], key=lambda x: x['date_signed'], reverse=True)
+        return representation
 
 class WorkersSerializer(ModelSerializer):
     class Meta:

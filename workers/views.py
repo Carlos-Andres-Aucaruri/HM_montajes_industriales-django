@@ -8,6 +8,7 @@ import pandas as pd
 from common.util import normalize_date, get_start_end_week_dates
 from rest_framework import viewsets
 from rest_framework import status
+from rest_framework import filters
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -123,6 +124,9 @@ def upload_signings(request):
 class WorkerView(viewsets.ModelViewSet):
     serializer_class = WorkersSerializer
     queryset = Worker.objects.all()
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = '__all__'
+    ordering = ['name']
     permission_classes = [AllowAny]
 
     def get_serializer_class(self):
@@ -133,6 +137,9 @@ class WorkerView(viewsets.ModelViewSet):
 class SigningView(viewsets.ModelViewSet):
     serializer_class = RawSigningsSerializer
     queryset = RawSignings.objects.all()
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = '__all__'
+    ordering = ['worker__name', '-date_signed']
     permission_classes = [AllowAny]
 
     def get_serializer_class(self):
