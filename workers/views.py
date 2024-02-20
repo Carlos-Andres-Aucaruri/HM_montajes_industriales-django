@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes, parser_class
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.pagination import PageNumberPagination
 from .serializers import WorkerSerializer, WorkersSerializer, RawSigningsSerializer, RawSigningsSerializerFull
 
 def index(request):
@@ -141,6 +142,8 @@ class SigningView(viewsets.ModelViewSet):
     ordering_fields = '__all__'
     ordering = ['worker__name', '-date_signed']
     permission_classes = [AllowAny]
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 100
 
     def get_serializer_class(self):
         if self.action == "list":
