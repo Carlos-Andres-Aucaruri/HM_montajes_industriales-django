@@ -20,6 +20,11 @@ class SettlementSerializer(ModelSerializer):
     class Meta:
         model = Settlement
         fields = ['id', 'start_date', 'end_date', 'processed', 'details']
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['details'] = sorted(representation['details'], key=lambda x: x['worker_info']['name'])
+        return representation
 
 class SettlementsSerializer(ModelSerializer):
     class Meta:
