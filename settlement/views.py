@@ -11,6 +11,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework import filters
 from rest_framework import status
 from .serializers import SettlementsSerializer, SettlementSerializer, SettlementDetailsSerializer
 
@@ -64,8 +65,7 @@ def process_settlement_signings(settlement: Settlement):
             )
             settlement_details.set_week_holidays()
             settlement_details.set_weekly_hours_needed()
-            if not created:
-                settlement_details.reset_hours()
+            settlement_details.reset_hours()
         
         current_datetime = raw_signing.get_original_normalized_date_signed()
         is_inside = True if raw_signing.signed_type == "E" else False
@@ -192,6 +192,9 @@ def export_settlement(request, pk):
 class SettlementView(viewsets.ModelViewSet):
     serializer_class = SettlementsSerializer
     queryset = Settlement.objects.all()
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = '__all__'
+    ordering = ['-start_date']
     permission_classes = [AllowAny]
 
     def get_serializer_class(self):

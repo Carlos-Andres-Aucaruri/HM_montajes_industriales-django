@@ -24,13 +24,13 @@ class Settlement(models.Model):
 class SettlementDetails(models.Model):
     def working_shifts_default():
         return {
-            'monday': None,
-            'tuesday': None,
-            'wednesday': None,
-            'thursday': None,
-            'friday': None,
-            'saturday': None,
-            'sunday': None,
+            'monday': {'start': '', 'end': ''},
+            'tuesday': {'start': '', 'end': ''},
+            'wednesday': {'start': '', 'end': ''},
+            'thursday': {'start': '', 'end': ''},
+            'friday': {'start': '', 'end': ''},
+            'saturday': {'start': '', 'end': ''},
+            'sunday': {'start': '', 'end': ''},
         }
 
     settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name='details')
@@ -181,8 +181,11 @@ class SettlementDetails(models.Model):
         return False
 
     def set_weekly_hours_needed(self):
-        for index, holiday_date in self.__holiday_dict.items():
+        for str_holiday, holiday_date in self.__holiday_dict.items():
             if holiday_date.weekday() == 6:
+                continue
+            # Fix when the next monday is holiday, that monday is not included
+            if holiday_date.weekday() == 0 and str_holiday == self.settlement.end_date.strftime("%Y-%m-%d"):
                 continue
             if self.__weekly_hours_needed == 47:
                 self.__weekly_hours_needed -= 7
