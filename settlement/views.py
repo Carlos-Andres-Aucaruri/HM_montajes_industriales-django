@@ -49,6 +49,7 @@ def process_settlement_signings(settlement: Settlement):
     ).order_by('worker__id', 'normalized_date_signed').all()
     is_starting_new_day = True
     start_datetime_signed = None
+    start_datetime_raw_signed = None
     is_inside = True
     current_worker_id = 0
     settlement_details = None
@@ -76,6 +77,7 @@ def process_settlement_signings(settlement: Settlement):
 
         if is_starting_new_day and is_inside:
             start_datetime_signed = current_datetime
+            start_datetime_raw_signed = raw_signing.date_signed
             is_starting_new_day = False
         
         if index+1 < len(raw_signings):
@@ -84,7 +86,7 @@ def process_settlement_signings(settlement: Settlement):
             next_signed_type = raw_signings[index+1].signed_type
             if next_worker_id != current_worker_id:
                 # Condition that ends the week, so the settlement_detail is saved
-                settlement_details.classify_hours(start_datetime_signed, current_datetime)
+                settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
                 settlement_details.set_total_hours()
                 settlement_details.save()
                 is_starting_new_day = True
@@ -96,13 +98,13 @@ def process_settlement_signings(settlement: Settlement):
                         # Condition that ends the day, so the working shift is saved
                         # The worker is not inside and their next signing was in another day
                         # We can classify the hours now
-                        settlement_details.classify_hours(start_datetime_signed, current_datetime)
+                        settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
                         settlement_details.set_total_hours()
                         settlement_details.save()
                         is_starting_new_day = True
         elif index == len(raw_signings)-1:
             # Condition that shows the end of the signings
-            settlement_details.classify_hours(start_datetime_signed, current_datetime)
+            settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
             settlement_details.set_total_hours()
             settlement_details.save()
     settlement.processed = True

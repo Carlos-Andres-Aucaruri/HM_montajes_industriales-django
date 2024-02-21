@@ -91,7 +91,7 @@ class SettlementDetails(models.Model):
     '''
     Classifies hours per day using a day shift and saves the dayshift in working_shifts
     '''
-    def classify_hours(self, start_day_time: datetime, end_day_time: datetime):
+    def classify_hours(self, start_day_time: datetime, end_day_time: datetime, start_day_raw_time: datetime, end_day_raw_time: datetime):
         # print(f'SHIFT STARTED AT {start_day_time} AND FINISHED AT {end_day_time}')
         total_day_hours = get_hours_difference(start_day_time, end_day_time)
         is_food_included = False if total_day_hours > 8 else True
@@ -124,7 +124,7 @@ class SettlementDetails(models.Model):
             is_holiday = self.is_holiday(current_time)
             total_day_hours += 0.5
             remaining_hours -= 0.5
-        self.set_working_shift_day(start_day_time, end_day_time, total_day_hours)
+        self.set_working_shift_day(start_day_raw_time, end_day_raw_time, total_day_hours)
 
     def __increase_hours(self, is_daytime: bool, is_holiday: bool):
         if is_daytime:
