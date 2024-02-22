@@ -8,8 +8,7 @@ from datetime import datetime
 from common.util import get_hours_difference
 from io import BytesIO
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import filters
 from rest_framework import status
@@ -197,7 +196,6 @@ class SettlementView(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = '__all__'
     ordering = ['-start_date']
-    permission_classes = [AllowAny]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -207,10 +205,8 @@ class SettlementView(viewsets.ModelViewSet):
 class SettlementDetailView(viewsets.ModelViewSet):
     serializer_class = SettlementDetailsSerializer
     queryset = SettlementDetails.objects.all()
-    permission_classes = [AllowAny]
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def process_settlement(request):
     pk = request.data['id']
     settlement = Settlement.objects.get(id=int(pk))
@@ -219,7 +215,6 @@ def process_settlement(request):
     return Response(serializer.data)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def export_settlement(request):
     pk = request.data['id']
     settlement = Settlement.objects.get(id=int(pk))
