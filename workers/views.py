@@ -9,10 +9,9 @@ from common.util import normalize_date, get_start_end_week_dates
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework import filters
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 from rest_framework.pagination import PageNumberPagination
 from .serializers import WorkerSerializer, WorkersSerializer, RawSigningsSerializer, RawSigningsSerializerFull
 
@@ -128,7 +127,6 @@ class WorkerView(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = '__all__'
     ordering = ['name']
-    permission_classes = [AllowAny]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -141,7 +139,6 @@ class SigningView(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = '__all__'
     ordering = ['worker__name', '-date_signed']
-    permission_classes = [AllowAny]
     pagination_class = PageNumberPagination
     pagination_class.page_size = 100
 
@@ -152,7 +149,6 @@ class SigningView(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
-@permission_classes([AllowAny])
 def import_signings(request, format=None):
     excel_file = request.FILES['excel_file']
     process_excel(excel_file)
