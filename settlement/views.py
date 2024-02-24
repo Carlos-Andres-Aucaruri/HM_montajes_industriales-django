@@ -45,7 +45,7 @@ def view(request, pk):
 def process_settlement_signings(settlement: Settlement):
     raw_signings = RawSignings.objects.filter(
         normalized_date_signed__range=(settlement.start_date, settlement.end_date)
-    ).order_by('worker__id', 'normalized_date_signed').all()
+    ).order_by('worker__id', 'date_signed').all()
     is_starting_new_day = True
     start_datetime_signed = None
     start_datetime_raw_signed = None
