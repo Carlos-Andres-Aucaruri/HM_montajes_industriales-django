@@ -66,6 +66,7 @@ def process_settlement_signings(settlement: Settlement):
             settlement_details.set_week_holidays()
             settlement_details.set_weekly_hours_needed()
             settlement_details.reset_hours()
+            settlement_details.reset_weekly_counters()
         
         current_datetime = raw_signing.get_original_normalized_date_signed()
         is_inside = True if raw_signing.signed_type == "E" else False

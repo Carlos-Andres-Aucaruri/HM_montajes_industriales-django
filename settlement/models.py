@@ -24,13 +24,13 @@ class Settlement(models.Model):
 class SettlementDetails(models.Model):
     def working_shifts_default():
         return {
-            'monday': {'start': '', 'end': ''},
-            'tuesday': {'start': '', 'end': ''},
-            'wednesday': {'start': '', 'end': ''},
-            'thursday': {'start': '', 'end': ''},
-            'friday': {'start': '', 'end': ''},
-            'saturday': {'start': '', 'end': ''},
-            'sunday': {'start': '', 'end': ''},
+            'monday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'tuesday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'wednesday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'thursday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'friday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'saturday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'sunday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
         }
 
     settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name='details')
@@ -57,6 +57,8 @@ class SettlementDetails(models.Model):
     __weekly_hours_needed = 47
     __weekly_hours_completed = 0
     __holiday_dict = {}
+    # Defines the normal hours during holidays, and if the counter is over 8 then increases extra hours
+    __holiday_hours_dict = {}
 
     class Meta:
         verbose_name_plural = 'Settlement details'
@@ -64,8 +66,8 @@ class SettlementDetails(models.Model):
     def __str__(self) -> str:
         return f'HO: {self.ordinary_hours} | HED: {self.daytime_overtime} | HRN: {self.night_surcharge_hours} | HEN: {self.night_overtime} | HF: {self.holiday_hours} | HFN: {self.night_holiday_hours} | HEFD: {self.daytime_holiday_overtime} | HEFN: {self.night_holiday_overtime}'
     
-    def set_working_shift_day(self, start_date: datetime, end_date: datetime, total_hours: float):
-        working_shift = {'start': start_date, 'end': end_date}
+    def __set_working_shift_day(self, start_date: datetime, end_date: datetime, start_date_normalized: datetime, end_date_normalized: datetime, total_hours: float):
+        working_shift = {'start': start_date, 'end': end_date, 'start_normalized': start_date_normalized, 'end_normalized': end_date_normalized}
         if start_date.weekday() == 0:
             self.monday = total_hours
             self.working_shifts['monday'] = working_shift
@@ -92,7 +94,6 @@ class SettlementDetails(models.Model):
     Classifies hours per day using a day shift and saves the dayshift in working_shifts
     '''
     def classify_hours(self, start_day_time: datetime, end_day_time: datetime, start_day_raw_time: datetime, end_day_raw_time: datetime):
-        # print(f'SHIFT STARTED AT {start_day_time} AND FINISHED AT {end_day_time}')
         total_day_hours = get_hours_difference(start_day_time, end_day_time)
         is_food_included = False if total_day_hours > 8 else True
 
@@ -116,39 +117,45 @@ class SettlementDetails(models.Model):
                 if is_food_included:
                     total_day_hours += 0.5
                     is_daytime = current_time < start_dinner
-                    self.__increase_hours(is_daytime, is_holiday)
+                    self.__increase_hours(is_daytime, is_holiday, current_time)
                 continue
             is_daytime = (start_day <= current_time < start_dinner) or (current_time >= end_day)
-            self.__increase_hours(is_daytime, is_holiday)
+            self.__increase_hours(is_daytime, is_holiday, current_time)
             current_time = current_time + timedelta(minutes=30)
             is_holiday = self.is_holiday(current_time)
             total_day_hours += 0.5
             remaining_hours -= 0.5
-        self.set_working_shift_day(start_day_raw_time, end_day_raw_time, total_day_hours)
+        self.__set_working_shift_day(start_day_raw_time, end_day_raw_time, start_day_time, end_day_time, total_day_hours)
 
-    def __increase_hours(self, is_daytime: bool, is_holiday: bool):
-        if is_daytime:
-            if self.__weekly_hours_completed < self.__weekly_hours_needed:
-                if is_holiday:
+    def __increase_hours(self, is_daytime: bool, is_holiday: bool, current_time: datetime):
+        str_current_time = current_time.strftime("%Y-%m-%d")
+        if is_holiday:
+            if self.__holiday_hours_dict.get(str_current_time) is None:
+                self.__holiday_hours_dict[str_current_time] = 0
+
+            if is_daytime:
+                if self.__holiday_hours_dict[str_current_time] < 8:
                     self.holiday_hours += 0.5
+                    self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
                 else:
+                    self.daytime_holiday_overtime += 0.5
+            else:
+                if self.__holiday_hours_dict[str_current_time] < 8:
+                    self.night_holiday_hours += 0.5
+                    self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
+                else:
+                    self.night_holiday_overtime += 0.5
+        else:
+            if is_daytime:
+                if self.__weekly_hours_completed < self.__weekly_hours_needed:
                     self.ordinary_hours += 0.5
                     self.__weekly_hours_completed += 0.5
-            else:
-                if is_holiday:
-                    self.daytime_holiday_overtime += 0.5
                 else:
                     self.daytime_overtime += 0.5
-        else:
-            if self.__weekly_hours_completed < self.__weekly_hours_needed:
-                if is_holiday:
-                    self.night_holiday_hours += 0.5
-                else:
+            else:
+                if self.__weekly_hours_completed < self.__weekly_hours_needed:
                     self.night_surcharge_hours += 0.5
                     self.__weekly_hours_completed += 0.5
-            else:
-                if is_holiday:
-                    self.night_holiday_overtime += 0.5
                 else:
                     self.night_overtime += 0.5
 
@@ -164,6 +171,11 @@ class SettlementDetails(models.Model):
         self.night_holiday_hours = 0.0
         self.daytime_holiday_overtime = 0.0
         self.night_holiday_overtime = 0.0
+    
+    def reset_weekly_counters(self):
+        self.__weekly_hours_completed = 0
+        for key in self.__holiday_hours_dict:
+            self.__holiday_hours_dict[key] = 0
 
     def set_week_holidays(self):
         start_date = self.settlement.start_date
