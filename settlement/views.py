@@ -66,6 +66,7 @@ def process_settlement_signings(settlement: Settlement):
             settlement_details.set_week_holidays()
             settlement_details.set_weekly_hours_needed()
             settlement_details.reset_hours()
+            settlement_details.reset_weekly_counters()
         
         current_datetime = raw_signing.get_original_normalized_date_signed()
         is_inside = True if raw_signing.signed_type == "E" else False
@@ -88,7 +89,6 @@ def process_settlement_signings(settlement: Settlement):
                 settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
                 settlement_details.set_total_hours()
                 settlement_details.save()
-                settlement_details.reset_weekly_counters()
                 is_starting_new_day = True
                 continue
             if not is_inside:
@@ -100,14 +100,12 @@ def process_settlement_signings(settlement: Settlement):
                     settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
                     settlement_details.set_total_hours()
                     settlement_details.save()
-                    settlement_details.reset_weekly_counters()
                     is_starting_new_day = True
         elif index == len(raw_signings)-1:
             # Condition that shows the end of the signings
             settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
             settlement_details.set_total_hours()
             settlement_details.save()
-            settlement_details.reset_weekly_counters()
     settlement.processed = True
     settlement.save()
 

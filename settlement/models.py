@@ -136,13 +136,13 @@ class SettlementDetails(models.Model):
             if is_daytime:
                 if self.__holiday_hours_dict[str_current_time] < 8:
                     self.holiday_hours += 0.5
-                    self.__holiday_hours_dict[str_current_time] += 0.5
+                    self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
                 else:
                     self.daytime_holiday_overtime += 0.5
             else:
                 if self.__holiday_hours_dict[str_current_time] < 8:
                     self.night_holiday_hours += 0.5
-                    self.__holiday_hours_dict[str_current_time] += 0.5
+                    self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
                 else:
                     self.night_holiday_overtime += 0.5
         else:
@@ -174,7 +174,8 @@ class SettlementDetails(models.Model):
     
     def reset_weekly_counters(self):
         self.__weekly_hours_completed = 0
-        self.__holiday_hours_dict = {}
+        for key in self.__holiday_hours_dict:
+            self.__holiday_hours_dict[key] = 0
 
     def set_week_holidays(self):
         start_date = self.settlement.start_date
