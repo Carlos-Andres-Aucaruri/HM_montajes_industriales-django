@@ -3,6 +3,10 @@ from settlement.models import Settlement
 from workers.models import Worker
 
 class Payroll(models.Model):
+    payroll_date = models.DateField()
+
+class PayrollDetail(models.Model):
+    payroll = models.ForeignKey(Payroll, on_delete=models.CASCADE, related_name='details')
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE)
     total_hours = models.FloatField(default=0.0)
     ordinary_hours = models.FloatField(default=0.0)
@@ -16,4 +20,4 @@ class Payroll(models.Model):
 
 class SettlementPayroll(models.Model):
     settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name='settlements')
-    payroll = models.ForeignKey(Payroll, on_delete=models.CASCADE)
+    payroll_detail = models.ForeignKey(PayrollDetail, on_delete=models.CASCADE)
