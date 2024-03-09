@@ -19,3 +19,6 @@ class PayrollDetail(models.Model):
     night_holiday_hours = models.FloatField(default=0.0)
     daytime_holiday_overtime = models.FloatField(default=0.0)
     night_holiday_overtime = models.FloatField(default=0.0)
+
+    def __str__(self) -> str:
+        return f'HO: {self.ordinary_hours} | HED: {self.daytime_overtime} | HRN: {self.night_surcharge_hours} | HEN: {self.night_overtime} | HF: {self.holiday_hours} | HFN: {self.night_holiday_hours} | HEFD: {self.daytime_holiday_overtime} | HEFN: {self.night_holiday_overtime}'
