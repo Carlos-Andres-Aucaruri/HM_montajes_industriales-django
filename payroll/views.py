@@ -1,15 +1,16 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import filters
+import pandas as pd
+from io import BytesIO
+from django.http import HttpResponse
 from settlement.models import Settlement, SettlementDetails
 from .models import Payroll, PayrollDetail
 from .serializers import PayrollSerializer
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def create_payroll(request):
     try:
         data = request.data['settlements']
@@ -59,9 +60,101 @@ def create_payroll(request):
         return Response({'error': str(e)}, status=400)
 
 class PayrollView(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
     serializer_class = PayrollSerializer
     queryset = Payroll.objects.all()
     filter_backends = [filters.OrderingFilter]
     ordering_fields = '__all__'
     ordering = ['-payroll_date']
+
+def export_payroll_detail(payroll: Payroll):
+    try:
+        settlements = payroll.settlement.order_by('start_date').all()
+        payroll_details = payroll.details.order_by('worker__name').all()
+
+        columns = ['worker__name']
+        rename_columns = {
+            'worker__name': 'Trabajador',
+            'total_hours': 'Total Horas',
+            'ordinary_hours': 'H.O',
+            'daytime_overtime': 'H.E.D',
+            'night_surcharge_hours': 'H.R.N',
+            'night_overtime': 'H.E.N',
+            'holiday_hours': 'H.F',
+            'night_holiday_hours': 'H.F.N',
+            'daytime_holiday_overtime': 'H.E.F.D',
+            'night_holiday_overtime': 'H.E.F.N',
+        }
+        days_translate = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        for settlement in settlements:
+            days_dict = settlement.get_days_dict()
+            for idx, day in enumerate(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']):
+                column_name = f'settlement_detail_{settlement.id}__{day}'
+                columns.append(column_name)
+                rename_columns[column_name] = f'{days_translate[idx]} {days_dict[day]}'
+
+        columns.append('total_hours')
+        columns.append('ordinary_hours')
+        columns.append('daytime_overtime')
+        columns.append('night_surcharge_hours')
+        columns.append('night_overtime')
+        columns.append('holiday_hours')
+        columns.append('night_holiday_hours')
+        columns.append('daytime_holiday_overtime')
+        columns.append('night_holiday_overtime')
+
+        data = {column: [] for column in columns}
+        for payroll_detail in payroll_details:
+            for column in columns:
+                value_found = False
+                if 'settlement_detail' in column:
+                    related_model, field = column.split('__')
+                    settlement_details = payroll_detail.settlement_detail.order_by('settlement__start_date').all()
+                    for settlement_detail in settlement_details:
+                        if str(settlement_detail.settlement.id) in related_model:
+                            value_found = True
+                            value = getattr(settlement_detail, field, 0)
+                elif 'worker' in column:
+                    value_found = True
+                    value = payroll_detail.worker.name
+                else:
+                    value_found = True
+                    value = getattr(payroll_detail, column, 0)
+                if not value_found:
+                    value = 0
+                data[column].append(value)
+
+        df = pd.DataFrame.from_dict(data=data)
+        df = df.rename(columns=rename_columns)
+
+        # Create an in-memory buffer for the Excel file
+        excel_buffer = BytesIO()
+        filename = f'NOMINA {payroll.payroll_date}.xlsx'
+
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Nómina')
+
+            # Adjust the width of the columns
+            for column in df.columns:
+                column_length = max(df[column].astype(str).map(len).max(), len(column))
+                col_idx = df.columns.get_loc(column)
+                writer.sheets['Nómina'].set_column(col_idx, col_idx, column_length + 2)
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        response.write(excel_buffer.getvalue())
+        return response
+    except Exception as e:
+        raise Exception(f'There was a problem exporting the excel file: {e}')
+
+@api_view(['POST'])
+def export_payroll(request):
+    pk = request.data['id']
+    payroll = Payroll.objects.get(id=int(pk))
+    try:
+        response = export_payroll_detail(payroll)
+        return response
+    except Exception as e:
+        pass
+
+    return Response({'status': status.HTTP_200_OK})
