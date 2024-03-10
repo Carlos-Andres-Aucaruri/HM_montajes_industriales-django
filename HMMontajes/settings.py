@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'settlement.apps.SettlementConfig',
     'workers.apps.WorkersConfig',
     'holidays.apps.HolidaysConfig',
+    'payroll.apps.PayrollConfig',
 ]
 
 MIDDLEWARE = [

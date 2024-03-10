@@ -16,6 +16,7 @@ urlpatterns = [
     path('settlement/', include('settlement.urls')),
     path('workers/', include('workers.urls')),
     path('holidays/', include('holidays.urls')),
+    path('payroll/', include('payroll.urls')),
     path('', lambda request: redirect('/workers/upload-signings'), name='index'),
     path('docs/', include_docs_urls(title='HM API', permission_classes=[AllowAny])),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

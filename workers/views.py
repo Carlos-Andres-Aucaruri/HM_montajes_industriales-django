@@ -152,6 +152,9 @@ class SigningView(viewsets.ModelViewSet):
 def import_signings(request, format=None):
     excel_file = request.FILES['excel_file']
     process_excel(excel_file)
-    signings = RawSignings.objects.all()
-    serializer = RawSigningsSerializer(signings, many=True)
-    return Response(serializer.data)
+    signings = RawSignings.objects.order_by('worker__name', '-date_signed').all()
+    paginator = PageNumberPagination()
+    paginator.page_size = 100
+    result_page = paginator.paginate_queryset(signings, request)
+    serializer = RawSigningsSerializerFull(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)

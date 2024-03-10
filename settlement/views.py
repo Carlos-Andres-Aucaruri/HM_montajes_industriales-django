@@ -4,7 +4,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import pandas as pd
 from .models import Settlement, SettlementDetails
 from workers.models import Worker, RawSignings
-from datetime import datetime
+from datetime import datetime, timedelta
 from common.util import get_hours_difference
 from io import BytesIO
 from rest_framework import viewsets
@@ -41,6 +41,16 @@ def view(request, pk):
         settlement_details = paginator.page(paginator.num_pages)
     context = {'settlement': settlement, 'settlement_details': settlement_details}
     return render(request, 'settlement/view.html', context)
+
+def create_ghost_datetime(start_datetime_signed: datetime):
+    if start_datetime_signed.hour < 13:
+        return datetime(start_datetime_signed.year, start_datetime_signed.month, start_datetime_signed.day, 14, 0, 0, 0, start_datetime_signed.tzinfo)
+    elif start_datetime_signed.hour < 21:
+        return datetime(start_datetime_signed.year, start_datetime_signed.month, start_datetime_signed.day, 22, 0, 0, 0, start_datetime_signed.tzinfo)
+    else:
+        ghost_datetime = datetime(start_datetime_signed.year, start_datetime_signed.month, start_datetime_signed.day, 6, 0, 0, 0, start_datetime_signed.tzinfo)
+        ghost_datetime = ghost_datetime + timedelta(days=1)
+        return ghost_datetime
 
 def process_settlement_signings(settlement: Settlement):
     raw_signings = RawSignings.objects.filter(
@@ -84,15 +94,20 @@ def process_settlement_signings(settlement: Settlement):
             next_worker_id = raw_signings[index+1].worker.id
             next_datetime_signed = raw_signings[index+1].get_original_normalized_date_signed()
             next_signed_type = raw_signings[index+1].signed_type
+            hours = get_hours_difference(current_datetime, next_datetime_signed)
             if next_worker_id != current_worker_id:
                 # Condition that ends the week, so the settlement_detail is saved
-                settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
+                if is_inside:
+                    # The worker is inside and their next signing was in another week
+                    ghost_datetime = create_ghost_datetime(start_datetime_signed)
+                    settlement_details.classify_hours(start_datetime_signed, ghost_datetime, start_datetime_raw_signed, ghost_datetime)
+                else:
+                    settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
                 settlement_details.set_total_hours()
                 settlement_details.save()
                 is_starting_new_day = True
                 continue
             if not is_inside:
-                hours = get_hours_difference(current_datetime, next_datetime_signed)
                 if hours > 4:
                     # Condition that ends the day, so the working shift is saved
                     # The worker is not inside and their next signing was in another day
@@ -101,6 +116,18 @@ def process_settlement_signings(settlement: Settlement):
                     settlement_details.set_total_hours()
                     settlement_details.save()
                     is_starting_new_day = True
+            if is_inside and next_signed_type == 'E':
+                if hours > 15:
+                    # Condition that has no exit of the day, so we create a limit hour
+                    # The worker is inside and their next signing was in another day
+                    # We can classify the hours now
+                    ghost_datetime = create_ghost_datetime(start_datetime_signed)
+                    settlement_details.classify_hours(start_datetime_signed, ghost_datetime, start_datetime_raw_signed, ghost_datetime)
+                    settlement_details.set_total_hours()
+                    settlement_details.save()
+                    is_starting_new_day = True
+
+
         elif index == len(raw_signings)-1:
             # Condition that shows the end of the signings
             settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
