@@ -14,6 +14,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from .serializers import WorkerSerializer, WorkersSerializer, RawSigningsSerializer, RawSigningsSerializerFull
+from django.db.models import Q
 
 def index(request):
     workers_list = Worker.objects.all()
@@ -140,12 +141,25 @@ class SigningView(viewsets.ModelViewSet):
     ordering_fields = '__all__'
     ordering = ['worker__name', '-date_signed']
     pagination_class = PageNumberPagination
-    pagination_class.page_size = 100
+    pagination_class.page_size = 10
+    pagination_class.max_page_size = 100
+    pagination_class.page_size_query_param = 'page_size'
 
     def get_serializer_class(self):
         if self.action == "list":
             return RawSigningsSerializerFull
         return RawSigningsSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            # Customize this filter logic according to your needs
+            queryset = queryset.filter(
+                Q(worker__name__icontains=search_query) |
+                Q(worker__document__icontains=search_query)
+            )
+        return queryset
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
