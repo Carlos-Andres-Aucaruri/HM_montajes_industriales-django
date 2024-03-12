@@ -153,12 +153,18 @@ class SigningView(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         search_query = self.request.query_params.get('search', None)
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
         if search_query:
             # Customize this filter logic according to your needs
             queryset = queryset.filter(
                 Q(worker__name__icontains=search_query) |
                 Q(worker__document__icontains=search_query)
             )
+        if start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            queryset = queryset.filter(normalized_date_signed__range=(start_date, end_date))
         return queryset
 
 @api_view(['POST'])
