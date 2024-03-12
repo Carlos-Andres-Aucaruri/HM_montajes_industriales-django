@@ -4,7 +4,7 @@ from workers.models import Worker
 
 class Payroll(models.Model):
     payroll_date = models.DateField()
-    settlement = models.ManyToManyField(Settlement)
+    settlement = models.ManyToManyField(Settlement, related_name='payroll')
 
 class PayrollDetail(models.Model):
     payroll = models.ForeignKey(Payroll, on_delete=models.CASCADE, related_name='details')
