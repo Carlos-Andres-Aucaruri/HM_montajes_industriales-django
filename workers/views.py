@@ -137,9 +137,10 @@ class WorkerView(viewsets.ModelViewSet):
 class SigningView(viewsets.ModelViewSet):
     serializer_class = RawSigningsSerializer
     queryset = RawSignings.objects.all()
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     ordering_fields = '__all__'
     ordering = ['worker__name', '-date_signed']
+    search_fields = ['worker__name', 'worker__document']
     pagination_class = PageNumberPagination
     pagination_class.page_size = 10
     pagination_class.max_page_size = 100
@@ -152,15 +153,8 @@ class SigningView(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        search_query = self.request.query_params.get('search', None)
         start_date = self.request.query_params.get('start_date', None)
         end_date = self.request.query_params.get('end_date', None)
-        if search_query:
-            # Customize this filter logic according to your needs
-            queryset = queryset.filter(
-                Q(worker__name__icontains=search_query) |
-                Q(worker__document__icontains=search_query)
-            )
         if start_date and end_date:
             start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
