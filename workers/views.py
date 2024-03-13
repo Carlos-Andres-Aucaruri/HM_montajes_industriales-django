@@ -125,9 +125,14 @@ def upload_signings(request):
 class WorkerView(viewsets.ModelViewSet):
     serializer_class = WorkersSerializer
     queryset = Worker.objects.all()
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     ordering_fields = '__all__'
     ordering = ['name']
+    search_fields = ['name', 'document']
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 10
+    pagination_class.max_page_size = 100
+    pagination_class.page_size_query_param = 'page_size'
 
     def get_serializer_class(self):
         if self.action == "retrieve":
