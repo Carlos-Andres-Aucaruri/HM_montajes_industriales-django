@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from .models import Settlement, SettlementDetails
 from workers.serializers import WorkersSerializer
 
@@ -27,6 +27,11 @@ class SettlementSerializer(ModelSerializer):
         return representation
 
 class SettlementsSerializer(ModelSerializer):
+    has_payroll = SerializerMethodField()
+    
     class Meta:
         model = Settlement
         fields = '__all__'
+    
+    def get_has_payroll(self, obj):
+        return obj.payroll.exists()
