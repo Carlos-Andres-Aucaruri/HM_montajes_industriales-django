@@ -228,6 +228,16 @@ class SettlementView(viewsets.ModelViewSet):
         if self.action == "retrieve":
             return SettlementSerializer
         return SettlementsSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
+        if start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            queryset = queryset.filter(start_date__range=(start_date, end_date))
+        return queryset
 
 class SettlementDetailView(viewsets.ModelViewSet):
     serializer_class = SettlementDetailsSerializer
