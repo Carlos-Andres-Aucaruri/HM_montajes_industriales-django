@@ -95,7 +95,7 @@ class SettlementDetails(models.Model):
     '''
     def classify_hours(self, start_day_time: datetime, end_day_time: datetime, start_day_raw_time: datetime, end_day_raw_time: datetime):
         total_day_hours = get_hours_difference(start_day_time, end_day_time)
-        is_food_included = False if total_day_hours > 8 else True
+        is_food_included = False if total_day_hours > 8.5 else True
 
         start_day = datetime(start_day_time.year, start_day_time.month, start_day_time.day, 6, 0, 0, 0, start_day_time.tzinfo)
         end_day = start_day + timedelta(days=1)
