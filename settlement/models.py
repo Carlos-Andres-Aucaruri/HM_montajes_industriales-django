@@ -68,25 +68,27 @@ class SettlementDetails(models.Model):
     
     def __set_working_shift_day(self, start_date: datetime, end_date: datetime, start_date_normalized: datetime, end_date_normalized: datetime, total_hours: float):
         working_shift = {'start': start_date, 'end': end_date, 'start_normalized': start_date_normalized, 'end_normalized': end_date_normalized}
-        if start_date.weekday() == 0:
+        if self.worker.id == 208:
+            print(f'Start date day: {start_date_normalized} - {start_date_normalized.weekday()}')
+        if start_date_normalized.weekday() == 0:
             self.monday = total_hours
             self.working_shifts['monday'] = working_shift
-        elif start_date.weekday() == 1:
+        elif start_date_normalized.weekday() == 1:
             self.tuesday = total_hours
             self.working_shifts['tuesday'] = working_shift
-        elif start_date.weekday() == 2:
+        elif start_date_normalized.weekday() == 2:
             self.wednesday = total_hours
             self.working_shifts['wednesday'] = working_shift
-        elif start_date.weekday() == 3:
+        elif start_date_normalized.weekday() == 3:
             self.thursday = total_hours
             self.working_shifts['thursday'] = working_shift
-        elif start_date.weekday() == 4:
+        elif start_date_normalized.weekday() == 4:
             self.friday = total_hours
             self.working_shifts['friday'] = working_shift
-        elif start_date.weekday() == 5:
+        elif start_date_normalized.weekday() == 5:
             self.saturday = total_hours
             self.working_shifts['saturday'] = working_shift
-        elif start_date.weekday() == 6:
+        elif start_date_normalized.weekday() == 6:
             self.sunday = total_hours
             self.working_shifts['sunday'] = working_shift
 
