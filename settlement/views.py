@@ -87,7 +87,7 @@ def process_settlement_signings(settlement: Settlement):
 
         if is_starting_new_day and is_inside:
             start_datetime_signed = current_datetime
-            start_datetime_raw_signed = raw_signing.date_signed
+            start_datetime_raw_signed = raw_signing.get_original_date_signed()
             is_starting_new_day = False
 
         if index+1 < len(raw_signings):
@@ -102,7 +102,7 @@ def process_settlement_signings(settlement: Settlement):
                     ghost_datetime = create_ghost_datetime(start_datetime_signed)
                     settlement_details.classify_hours(start_datetime_signed, ghost_datetime, start_datetime_raw_signed, ghost_datetime)
                 else:
-                    settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
+                    settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.get_original_date_signed())
                 settlement_details.set_total_hours()
                 settlement_details.save()
                 is_starting_new_day = True
@@ -112,7 +112,7 @@ def process_settlement_signings(settlement: Settlement):
                     # Condition that ends the day, so the working shift is saved
                     # The worker is not inside and their next signing was in another day
                     # We can classify the hours now
-                    settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
+                    settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.get_original_date_signed())
                     settlement_details.set_total_hours()
                     settlement_details.save()
                     is_starting_new_day = True
@@ -130,7 +130,7 @@ def process_settlement_signings(settlement: Settlement):
 
         elif index == len(raw_signings)-1:
             # Condition that shows the end of the signings
-            settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.date_signed)
+            settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.get_original_date_signed())
             settlement_details.set_total_hours()
             settlement_details.save()
     settlement.processed = True
@@ -228,6 +228,16 @@ class SettlementView(viewsets.ModelViewSet):
         if self.action == "retrieve":
             return SettlementSerializer
         return SettlementsSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
+        if start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            queryset = queryset.filter(start_date__range=(start_date, end_date))
+        return queryset
 
 class SettlementDetailView(viewsets.ModelViewSet):
     serializer_class = SettlementDetailsSerializer

@@ -28,3 +28,6 @@ class RawSignings(models.Model):
 
     def get_original_normalized_date_signed(self):
         return self.normalized_date_signed.astimezone(timezone('America/Bogota'))
+    
+    def get_original_date_signed(self):
+        return self.date_signed.astimezone(timezone('America/Bogota'))

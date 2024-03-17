@@ -13,13 +13,13 @@ def normalize_date(datetime: datetime, signed_type: str) -> datetime:
             datetime = datetime + timedelta(hours=1)
             datetime = datetime.replace(minute=0, second=0)
     elif signed_type == 'S':
-        if 0 <= datetime.minute <= 15:
+        if 0 <= datetime.minute <= 24:
             # goes to hour o'clock
             datetime = datetime.replace(minute=0, second=0)
-        elif 15 < datetime.minute < 36:
+        elif 24 < datetime.minute < 38:
             # goes to hour and half
             datetime = datetime.replace(minute=30, second=0)
-        elif 36 <= datetime.minute <= 59:
+        elif 38 <= datetime.minute <= 59:
             # goes to next hour o'clock
             datetime = datetime + timedelta(hours=1)
             datetime = datetime.replace(minute=0, second=0)
