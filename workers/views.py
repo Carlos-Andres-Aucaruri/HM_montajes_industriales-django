@@ -9,7 +9,7 @@ from common.util import normalize_date, get_start_end_week_dates
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework import filters
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -165,6 +165,11 @@ class SigningView(viewsets.ModelViewSet):
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
             queryset = queryset.filter(normalized_date_signed__range=(start_date, end_date))
         return queryset
+    
+    @action(detail=False, methods=['DELETE'])
+    def delete_all(self, request):
+        self.get_queryset().delete()
+        return Response({'message': 'Todos los fichajes han sido eliminados correctamente'}, status=204)
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
