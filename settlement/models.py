@@ -68,8 +68,6 @@ class SettlementDetails(models.Model):
     
     def __set_working_shift_day(self, start_date: datetime, end_date: datetime, start_date_normalized: datetime, end_date_normalized: datetime, total_hours: float):
         working_shift = {'start': start_date, 'end': end_date, 'start_normalized': start_date_normalized, 'end_normalized': end_date_normalized}
-        if self.worker.id == 208:
-            print(f'Start date day: {start_date_normalized} - {start_date_normalized.weekday()}')
         if start_date_normalized.weekday() == 0:
             self.monday = total_hours
             self.working_shifts['monday'] = working_shift
