@@ -135,18 +135,25 @@ class SettlementDetails(models.Model):
             if self.__holiday_hours_dict.get(str_current_time) is None:
                 self.__holiday_hours_dict[str_current_time] = 0
 
-            if is_daytime:
-                if self.__holiday_hours_dict[str_current_time] < 8:
-                    self.holiday_hours += 0.5
-                    self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
+            if current_time.weekday() == 6 and self.__weekly_hours_completed < self.__weekly_hours_needed:
+                if is_daytime:
+                    self.ordinary_hours += 0.5
                 else:
-                    self.daytime_holiday_overtime += 0.5
+                    self.night_surcharge_hours += 0.5
+                self.__weekly_hours_completed += 0.5
             else:
-                if self.__holiday_hours_dict[str_current_time] < 8:
-                    self.night_holiday_hours += 0.5
-                    self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
+                if is_daytime:
+                    if self.__holiday_hours_dict[str_current_time] < 8:
+                        self.holiday_hours += 0.5
+                        self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
+                    else:
+                        self.daytime_holiday_overtime += 0.5
                 else:
-                    self.night_holiday_overtime += 0.5
+                    if self.__holiday_hours_dict[str_current_time] < 8:
+                        self.night_holiday_hours += 0.5
+                        self.__holiday_hours_dict[str_current_time] = self.__holiday_hours_dict[str_current_time] + 0.5
+                    else:
+                        self.night_holiday_overtime += 0.5
         else:
             if is_daytime:
                 if self.__weekly_hours_completed < self.__weekly_hours_needed:
