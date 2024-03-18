@@ -178,6 +178,7 @@ class SettlementDetails(models.Model):
         self.night_holiday_hours = 0.0
         self.daytime_holiday_overtime = 0.0
         self.night_holiday_overtime = 0.0
+        self.working_shifts.update(SettlementDetails.working_shifts_default())
     
     def reset_weekly_counters(self):
         self.__weekly_hours_completed = 0
