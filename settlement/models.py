@@ -170,6 +170,13 @@ class SettlementDetails(models.Model):
         self.total_hours = self.monday + self.tuesday + self.wednesday + self.thursday + self.friday + self.saturday + self.sunday
 
     def reset_hours(self):
+        self.monday = 0.0
+        self.tuesday = 0.0
+        self.wednesday = 0.0
+        self.thursday = 0.0
+        self.friday = 0.0
+        self.saturday = 0.0
+        self.sunday = 0.0
         self.ordinary_hours = 0.0
         self.daytime_overtime = 0.0
         self.night_surcharge_hours = 0.0
