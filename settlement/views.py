@@ -54,7 +54,7 @@ def create_ghost_datetime(start_datetime_signed: datetime):
 
 def process_settlement_signings(settlement: Settlement):
     start_filter = settlement.start_date - timedelta(hours=1)
-    end_filter = settlement.start_date + timedelta(hours=1)
+    end_filter = settlement.end_date + timedelta(hours=1)
     raw_signings = RawSignings.objects.filter(
         normalized_date_signed__range=(start_filter, end_filter)
     ).order_by('worker__id', 'date_signed').all()
