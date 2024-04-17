@@ -1,0 +1,1 @@
+web: gunicorn HMMontajes.wsgi --log-file -

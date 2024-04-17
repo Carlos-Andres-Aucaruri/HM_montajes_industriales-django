@@ -166,8 +166,8 @@ def export_settlement_signings(settlement: Settlement):
             'night_holiday_hours',
             'daytime_holiday_overtime',
             'night_holiday_overtime'))
-        df = df.rename(columns={
-            'worker__name': 'Trabajador',
+
+        columns_rename_day_dict = {
             'monday': f'Lunes {days_dict["monday"]}',
             'tuesday': f'Martes {days_dict["tuesday"]}',
             'wednesday': f'Miércoles {days_dict["wednesday"]}',
@@ -175,6 +175,17 @@ def export_settlement_signings(settlement: Settlement):
             'friday': f'Viernes {days_dict["friday"]}',
             'saturday': f'Sábado {days_dict["saturday"]}',
             'sunday': f'Domingo {days_dict["sunday"]}',
+        }
+
+        df = df.rename(columns={
+            'worker__name': 'Trabajador',
+            'monday': columns_rename_day_dict['monday'],
+            'tuesday': columns_rename_day_dict['tuesday'],
+            'wednesday': columns_rename_day_dict['wednesday'],
+            'thursday': columns_rename_day_dict['thursday'],
+            'friday': columns_rename_day_dict['friday'],
+            'saturday': columns_rename_day_dict['saturday'],
+            'sunday': columns_rename_day_dict['sunday'],
             'total_hours': 'Total Horas',
             'ordinary_hours': 'H.O',
             'daytime_overtime': 'H.E.D',
@@ -195,12 +206,32 @@ def export_settlement_signings(settlement: Settlement):
         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Liquidación')
 
+            # Get the Workbook object and the worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Liquidación']
+
+            # Format for green cells
+            green_format = workbook.add_format({'bg_color': '#C6EFCE'})
+            # Format for yellow cells
+            yellow_format = workbook.add_format({'bg_color': '#FFFF00'})
+
+            for row_idx, settlement_detail in enumerate(settlement_details):
+                working_shifts = settlement_detail.working_shifts
+                for day, shift in working_shifts.items():
+                    column_name = columns_rename_day_dict[day]
+                    col_idx = df.columns.get_loc(column_name)
+                    cell_value = df.at[row_idx, column_name]
+                    if shift['shift'] == 2:  # Turno de tarde
+                        worksheet.write(row_idx+1, col_idx, cell_value, green_format)
+                    elif shift['shift'] == 3:  # Turno de noche
+                        worksheet.write(row_idx+1, col_idx, cell_value, yellow_format)
+
             # Adjust the width of the columns
             for column in df.columns:
                 column_length = max(df[column].astype(str).map(len).max(), len(column))
                 col_idx = df.columns.get_loc(column)
-                writer.sheets['Liquidación'].set_column(col_idx, col_idx, column_length + 2)
-            
+                worksheet.set_column(col_idx, col_idx, column_length + 2)
+
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         response['Access-Control-Expose-Headers'] = 'Content-Disposition'
