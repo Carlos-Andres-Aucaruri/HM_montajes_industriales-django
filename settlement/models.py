@@ -22,15 +22,19 @@ class Settlement(models.Model):
         return days_dict
 
 class SettlementDetails(models.Model):
+    SHIFT_MORNING = 1
+    SHIFT_AFTERNOON = 2
+    SHIFT_NIGHT = 3
+
     def working_shifts_default():
         return {
-            'monday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
-            'tuesday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
-            'wednesday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
-            'thursday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
-            'friday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
-            'saturday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
-            'sunday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': ''},
+            'monday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
+            'tuesday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
+            'wednesday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
+            'thursday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
+            'friday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
+            'saturday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
+            'sunday': {'start': '', 'end': '', 'start_normalized': '', 'end_normalized': '', 'shift': 0},
         }
 
     settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name='details')
@@ -66,8 +70,18 @@ class SettlementDetails(models.Model):
     def __str__(self) -> str:
         return f'HO: {self.ordinary_hours} | HED: {self.daytime_overtime} | HRN: {self.night_surcharge_hours} | HEN: {self.night_overtime} | HF: {self.holiday_hours} | HFN: {self.night_holiday_hours} | HEFD: {self.daytime_holiday_overtime} | HEFN: {self.night_holiday_overtime}'
     
+    def __get_shift(self, start_date: datetime) -> int:
+        if 5 <= start_date.hour <= 7:
+            return self.SHIFT_MORNING
+        elif 13 <= start_date.hour <= 15:
+            return self.SHIFT_AFTERNOON
+        elif 18 <= start_date.hour <= 22:
+            return self.SHIFT_NIGHT
+        return 0
+    
     def __set_working_shift_day(self, start_date: datetime, end_date: datetime, start_date_normalized: datetime, end_date_normalized: datetime, total_hours: float):
-        working_shift = {'start': start_date, 'end': end_date, 'start_normalized': start_date_normalized, 'end_normalized': end_date_normalized}
+        shift = self.__get_shift(start_date_normalized)
+        working_shift = {'start': start_date, 'end': end_date, 'start_normalized': start_date_normalized, 'end_normalized': end_date_normalized, 'shift': shift}
         if start_date_normalized.weekday() == 0:
             self.monday = total_hours
             self.working_shifts['monday'] = working_shift
