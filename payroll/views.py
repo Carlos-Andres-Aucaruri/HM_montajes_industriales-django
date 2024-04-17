@@ -84,13 +84,17 @@ def export_payroll_detail(payroll: Payroll):
             'daytime_holiday_overtime': 'H.E.F.D',
             'night_holiday_overtime': 'H.E.F.N',
         }
+
+        days_shifts_dict = {}
         days_translate = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
         for settlement in settlements:
             days_dict = settlement.get_days_dict()
             for idx, day in enumerate(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']):
                 column_name = f'settlement_detail_{settlement.id}__{day}'
                 columns.append(column_name)
-                rename_columns[column_name] = f'{days_translate[idx]} {days_dict[day]}'
+                rename_column_name = f'{days_translate[idx]} {days_dict[day]}'
+                rename_columns[column_name] = rename_column_name
+                days_shifts_dict[column_name] = []
 
         columns.append('total_hours')
         columns.append('ordinary_hours')
@@ -107,12 +111,14 @@ def export_payroll_detail(payroll: Payroll):
             for column in columns:
                 value_found = False
                 if 'settlement_detail' in column:
-                    related_model, field = column.split('__')
+                    related_model, day = column.split('__')
                     settlement_details = payroll_detail.settlement_detail.order_by('settlement__start_date').all()
                     for settlement_detail in settlement_details:
                         if str(settlement_detail.settlement.id) in related_model:
                             value_found = True
-                            value = getattr(settlement_detail, field, 0)
+                            value = getattr(settlement_detail, day, 0)
+                            shift = settlement_detail.working_shifts[day]['shift']
+                            days_shifts_dict[column].append(shift)
                 elif 'worker' in column:
                     value_found = True
                     value = payroll_detail.worker.name
@@ -121,6 +127,7 @@ def export_payroll_detail(payroll: Payroll):
                     value = getattr(payroll_detail, column, 0)
                 if not value_found:
                     value = 0
+                    days_shifts_dict[column].append(0)
                 data[column].append(value)
 
         df = pd.DataFrame.from_dict(data=data)
@@ -133,11 +140,27 @@ def export_payroll_detail(payroll: Payroll):
         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Nómina')
 
+            workbook = writer.book
+            worksheet = writer.sheets['Nómina']
+
+            green_format = workbook.add_format({'bg_color': '#C6EFCE'})
+            yellow_format = workbook.add_format({'bg_color': '#FFFF00'})
+
+            for column_day, shifts in days_shifts_dict.items():
+                for row_idx, shift in enumerate(shifts):
+                    column_name = rename_columns[column_day]
+                    col_idx = df.columns.get_loc(column_name)
+                    cell_value = df.at[row_idx, column_name]
+                    if shift == 2:
+                        worksheet.write(row_idx+1, col_idx, cell_value, green_format)
+                    elif shift == 3:
+                        worksheet.write(row_idx+1, col_idx, cell_value, yellow_format)
+
             # Adjust the width of the columns
             for column in df.columns:
                 column_length = max(df[column].astype(str).map(len).max(), len(column))
                 col_idx = df.columns.get_loc(column)
-                writer.sheets['Nómina'].set_column(col_idx, col_idx, column_length + 2)
+                worksheet.set_column(col_idx, col_idx, column_length + 2)
 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'

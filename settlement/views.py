@@ -230,7 +230,7 @@ def export_settlement_signings(settlement: Settlement):
             for column in df.columns:
                 column_length = max(df[column].astype(str).map(len).max(), len(column))
                 col_idx = df.columns.get_loc(column)
-                writer.sheets['Liquidación'].set_column(col_idx, col_idx, column_length + 2)
+                worksheet.set_column(col_idx, col_idx, column_length + 2)
 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
