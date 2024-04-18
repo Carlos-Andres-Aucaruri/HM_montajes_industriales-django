@@ -179,3 +179,5 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
 }
+
+CSRF_TRUSTED_ORIGINS = ['https://hm-soluciones-api.up.railway.app','http://127.0.0.1']
