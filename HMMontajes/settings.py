@@ -165,7 +165,7 @@ if DEBUG:
 # cors authorization
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
-    'https://hm-react.onrender.com',
+    'https://hm-soluciones.up.railway.app',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
