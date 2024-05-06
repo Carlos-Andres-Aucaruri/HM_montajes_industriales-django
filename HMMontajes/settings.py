@@ -163,10 +163,7 @@ if DEBUG:
     ]
 
 # cors authorization
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'https://hm-soluciones.up.railway.app',
-]
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS').split(' ')
 
 CORS_ALLOW_CREDENTIALS = True
 
