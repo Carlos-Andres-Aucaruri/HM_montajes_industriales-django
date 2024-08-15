@@ -42,8 +42,10 @@ def view(request, pk):
     context = {'settlement': settlement, 'settlement_details': settlement_details}
     return render(request, 'settlement/view.html', context)
 
-def create_ghost_datetime(start_datetime_signed: datetime):
+def create_ghost_datetime(start_datetime_signed: datetime, current_datetime: datetime):
     if start_datetime_signed.hour < 13:
+        if current_datetime.hour >= 14:
+            return datetime(start_datetime_signed.year, start_datetime_signed.month, start_datetime_signed.day, current_datetime.hour, current_datetime.minute, 0, 0, start_datetime_signed.tzinfo)
         return datetime(start_datetime_signed.year, start_datetime_signed.month, start_datetime_signed.day, 14, 0, 0, 0, start_datetime_signed.tzinfo)
     elif start_datetime_signed.hour < 21:
         return datetime(start_datetime_signed.year, start_datetime_signed.month, start_datetime_signed.day, 22, 0, 0, 0, start_datetime_signed.tzinfo)
@@ -101,7 +103,7 @@ def process_settlement_signings(settlement: Settlement):
                 # Condition that ends the week, so the settlement_detail is saved
                 if is_inside:
                     # The worker is inside and their next signing was in another week
-                    ghost_datetime = create_ghost_datetime(start_datetime_signed)
+                    ghost_datetime = create_ghost_datetime(start_datetime_signed, current_datetime)
                     settlement_details.classify_hours(start_datetime_signed, ghost_datetime, start_datetime_raw_signed, ghost_datetime)
                 else:
                     settlement_details.classify_hours(start_datetime_signed, current_datetime, start_datetime_raw_signed, raw_signing.get_original_date_signed())
@@ -110,7 +112,7 @@ def process_settlement_signings(settlement: Settlement):
                 is_starting_new_day = True
                 continue
             if not is_inside:
-                if hours > 4:
+                if hours > 7:
                     # Condition that ends the day, so the working shift is saved
                     # The worker is not inside and their next signing was in another day
                     # We can classify the hours now
@@ -119,11 +121,11 @@ def process_settlement_signings(settlement: Settlement):
                     settlement_details.save()
                     is_starting_new_day = True
             if is_inside and next_signed_type == 'E':
-                if hours > 15:
+                if hours > 12:
                     # Condition that has no exit of the day, so we create a limit hour
                     # The worker is inside and their next signing was in another day
                     # We can classify the hours now
-                    ghost_datetime = create_ghost_datetime(start_datetime_signed)
+                    ghost_datetime = create_ghost_datetime(start_datetime_signed, current_datetime)
                     settlement_details.classify_hours(start_datetime_signed, ghost_datetime, start_datetime_raw_signed, ghost_datetime)
                     settlement_details.set_total_hours()
                     settlement_details.save()
