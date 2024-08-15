@@ -94,6 +94,8 @@ def process_settlement_signings(settlement: Settlement):
             start_datetime_raw_signed = raw_signing.get_original_date_signed()
             is_starting_new_day = False
 
+        # print(f'start_datetime_signed: {start_datetime_signed} | start_datetime_raw_signed: {start_datetime_raw_signed} | is_inside: {is_inside}')
+
         if index+1 < len(raw_signings):
             next_worker_id = raw_signings[index+1].worker.id
             next_datetime_signed = raw_signings[index+1].get_original_normalized_date_signed()
@@ -113,6 +115,9 @@ def process_settlement_signings(settlement: Settlement):
                 continue
             if not is_inside:
                 if hours > 7:
+                    # Fixes a bug in excel file where the worker is not inside by mistake and actually finishes their turn later
+                    if next_signed_type == 'S':
+                        continue
                     # Condition that ends the day, so the working shift is saved
                     # The worker is not inside and their next signing was in another day
                     # We can classify the hours now
