@@ -136,7 +136,7 @@ class SigningView(viewsets.ModelViewSet):
 def import_signings(request, format=None):
     excel_file = request.FILES["excel_file"]
     file_path = save_excel_file(excel_file)
-    process_excel.apply_async(file_path=file_path)
+    process_excel.apply_async(file_path)
     signings = RawSignings.objects.order_by("worker__name", "-date_signed").all()
     paginator = PageNumberPagination()
     paginator.page_size = 100
