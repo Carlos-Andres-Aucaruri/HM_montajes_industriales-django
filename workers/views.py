@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -68,8 +69,12 @@ def signings(request):
 def upload_signings(request):
     if request.method == "POST" and request.FILES["excel_file"]:
         excel_file = request.FILES["excel_file"]
-        file_path = save_excel_file(excel_file)
-        process_excel.apply_async(file_path)
+        # file_path = save_excel_file(excel_file)
+        file_data = base64.b64encode(excel_file.read()).decode("utf-8")
+        data_task = {
+            "file_data": file_data,
+        }
+        process_excel.apply_async(kwargs=data_task)
         return redirect("/settlement/")
 
     return render(request, "workers/upload_excel.html")
@@ -135,8 +140,12 @@ class SigningView(viewsets.ModelViewSet):
 @parser_classes([MultiPartParser, FormParser])
 def import_signings(request, format=None):
     excel_file = request.FILES["excel_file"]
-    file_path = save_excel_file(excel_file)
-    process_excel.apply_async(file_path)
+    # file_path = save_excel_file(excel_file)
+    file_data = base64.b64encode(excel_file.read()).decode("utf-8")
+    data_task = {
+        "file_data": file_data,
+    }
+    process_excel.apply_async(kwargs=data_task)
     signings = RawSignings.objects.order_by("worker__name", "-date_signed").all()
     paginator = PageNumberPagination()
     paginator.page_size = 100

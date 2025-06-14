@@ -1,3 +1,5 @@
+import base64
+import io
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
@@ -10,8 +12,10 @@ from .models import RawSignings, Worker
 
 
 @shared_task
-def process_excel(file_path):
-    df = pd.read_excel(file_path)
+def process_excel(file_data: str):
+    decoded_file = base64.b64decode(file_data)
+    file = io.BytesIO(decoded_file)
+    df = pd.read_excel(file)
     dates = []
     workers = {}
     for index, row in df.iterrows():
@@ -78,3 +82,4 @@ def process_excel(file_path):
             )
             settlements.append(settlement)
     Settlement.objects.bulk_create(settlements)
+    print("Excel processing finished.")
