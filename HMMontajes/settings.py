@@ -177,3 +177,5 @@ REST_FRAMEWORK = {
 CSRF_TRUSTED_ORIGINS = ["https://hm-soluciones-api.up.railway.app", "http://127.0.0.1"]
 
 CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
+DEBUG = True
