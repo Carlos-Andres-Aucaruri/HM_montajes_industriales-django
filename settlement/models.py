@@ -120,20 +120,25 @@ class SettlementDetails(models.Model):
         start_dinner = datetime(start_day_time.year, start_day_time.month, start_day_time.day, 21, 0, 0, 0, start_day_time.tzinfo)
         end_dinner = start_dinner + timedelta(hours=1)
 
+        # Night working hours are between 7pm and 6am
+        start_night = datetime(start_day_time.year, start_day_time.month, start_day_time.day, 19, 0, 0, 0, start_day_time.tzinfo)
+        # end_night = start_night + timedelta(hours=11)
+
         remaining_hours = total_day_hours
         total_day_hours = 0.0
         current_time = start_day_time
         is_holiday = self.is_holiday(current_time)
         while remaining_hours > 0.0:
             if (start_lunch <= current_time < end_lunch) or (start_dinner <= current_time < end_dinner):
+                # If current time is between lunch or dinner
                 current_time = current_time + timedelta(minutes=30)
                 remaining_hours -= 0.5
                 if is_food_included:
                     total_day_hours += 0.5
-                    is_daytime = current_time < start_dinner
+                    is_daytime = current_time < start_night
                     self.__increase_hours(is_daytime, is_holiday, current_time)
                 continue
-            is_daytime = (start_day <= current_time < start_dinner) or (current_time >= end_day)
+            is_daytime = (start_day <= current_time < start_night) or (current_time >= end_day)
             self.__increase_hours(is_daytime, is_holiday, current_time)
             current_time = current_time + timedelta(minutes=30)
             is_holiday = self.is_holiday(current_time)
