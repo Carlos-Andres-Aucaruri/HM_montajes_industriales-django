@@ -1,8 +1,9 @@
 from django.db import models
 from django.core.serializers.json import DjangoJSONEncoder
 from datetime import datetime, timedelta
+import holidays
+
 from common.util import get_hours_difference
-from holidays.models import Holiday
 
 
 class Settlement(models.Model):
@@ -143,32 +144,23 @@ class SettlementDetails(models.Model):
             "end_normalized": end_date_normalized,
             "shift": shift,
         }
-        if start_date_normalized.weekday() == 0:
-            self.monday = total_hours
-            self.working_shifts["monday"] = working_shift
-        elif start_date_normalized.weekday() == 1:
-            self.tuesday = total_hours
-            self.working_shifts["tuesday"] = working_shift
-        elif start_date_normalized.weekday() == 2:
-            self.wednesday = total_hours
-            self.working_shifts["wednesday"] = working_shift
-        elif start_date_normalized.weekday() == 3:
-            self.thursday = total_hours
-            self.working_shifts["thursday"] = working_shift
-        elif start_date_normalized.weekday() == 4:
-            self.friday = total_hours
-            self.working_shifts["friday"] = working_shift
-        elif start_date_normalized.weekday() == 5:
-            self.saturday = total_hours
-            self.working_shifts["saturday"] = working_shift
-        elif start_date_normalized.weekday() == 6:
-            self.sunday = total_hours
-            self.working_shifts["sunday"] = working_shift
+        days = [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+        ]
+        weekday = start_date_normalized.weekday()
+        day_name = days[weekday]
+        setattr(self, day_name, total_hours)
+        self.working_shifts[day_name] = working_shift
 
     """
     Classifies hours per day using a day shift and saves the dayshift in working_shifts
     """
-
     def classify_hours(
         self,
         start_day_time: datetime,
@@ -232,6 +224,7 @@ class SettlementDetails(models.Model):
         total_day_hours = 0.0
         current_time = start_day_time
         is_holiday = self.is_holiday(current_time)
+
         while remaining_hours > 0.0:
             if (start_lunch <= current_time < end_lunch) or (
                 start_dinner <= current_time < end_dinner
@@ -244,6 +237,7 @@ class SettlementDetails(models.Model):
                     is_daytime = current_time < start_night
                     self.__increase_hours(is_daytime, is_holiday, current_time)
                 continue
+
             is_daytime = (start_day <= current_time < start_night) or (
                 current_time >= end_day
             )
@@ -252,6 +246,7 @@ class SettlementDetails(models.Model):
             is_holiday = self.is_holiday(current_time)
             total_day_hours += 0.5
             remaining_hours -= 0.5
+
         self.__set_working_shift_day(
             start_day_raw_time,
             end_day_raw_time,
@@ -278,17 +273,13 @@ class SettlementDetails(models.Model):
             if is_daytime:
                 if self.__holiday_hours_dict[str_current_time] < 8:
                     self.holiday_hours += 0.5
-                    self.__holiday_hours_dict[str_current_time] = (
-                        self.__holiday_hours_dict[str_current_time] + 0.5
-                    )
+                    self.__holiday_hours_dict[str_current_time] += 0.5
                 else:
                     self.daytime_holiday_overtime += 0.5
             else:
                 if self.__holiday_hours_dict[str_current_time] < 8:
                     self.night_holiday_hours += 0.5
-                    self.__holiday_hours_dict[str_current_time] = (
-                        self.__holiday_hours_dict[str_current_time] + 0.5
-                    )
+                    self.__holiday_hours_dict[str_current_time] += 0.5
                 else:
                     self.night_holiday_overtime += 0.5
         else:
@@ -339,36 +330,48 @@ class SettlementDetails(models.Model):
         for key in self.__holiday_hours_dict:
             self.__holiday_hours_dict[key] = 0
 
+    ### AJUSTE PRINCIPAL AQUÍ ###
     def set_week_holidays(self):
+        """Carga los festivos de Colombia usando la librería holidays."""
         start_date = self.settlement.start_date
         end_date = self.settlement.end_date
-        start_date = datetime(start_date.year, start_date.month, start_date.day)
-        end_date = datetime(end_date.year, end_date.month, end_date.day)
-        holidays_list = Holiday.objects.filter(
-            holiday_date__range=(start_date, end_date)
-        ).all()
-        self.__holiday_dict = {
-            holiday.holiday_date.strftime("%Y-%m-%d"): holiday.holiday_date
-            for holiday in holidays_list
-        }
+
+        # Instanciamos los festivos de Colombia
+        co_holidays = holidays.CountryHoliday("CO")
+
+        self.__holiday_dict = {}
+        curr = start_date
+        # Recorremos el rango de fechas para identificar cuáles son festivos
+        while curr <= end_date:
+            if curr in co_holidays:
+                str_date = curr.strftime("%Y-%m-%d")
+                # Guardamos como objeto date para mantener compatibilidad con set_weekly_hours_needed
+                self.__holiday_dict[str_date] = curr.date()
+            curr += timedelta(days=1)
 
     def is_holiday(self, date):
-        if date.weekday() == 6:
+        """Verifica si es Domingo o si está en el diccionario de festivos cargado."""
+        if date.weekday() == 6:  # Domingo
             return True
         if date.strftime("%Y-%m-%d") in self.__holiday_dict:
             return True
         return False
 
     def set_weekly_hours_needed(self):
+        """Ajusta las horas semanales necesarias restando las de los festivos."""
         for str_holiday, holiday_date in self.__holiday_dict.items():
+            # Si el festivo cae domingo, no restamos horas adicionales (ya se cuenta como domingo)
             if holiday_date.weekday() == 6:
                 continue
-            # Fix when the next monday is holiday, that monday is not included
+
+            # Si el festivo es el lunes de la siguiente semana (fuera del corte actual)
             if (
                 holiday_date.weekday() == 0
                 and str_holiday == self.settlement.end_date.strftime("%Y-%m-%d")
             ):
                 continue
+
+            # Lógica de reducción de jornada por festivo (ajustable según política de empresa)
             if self.__weekly_hours_needed == 47:
                 self.__weekly_hours_needed -= 7
             else:
