@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     "coreapi",
     "settlement.apps.SettlementConfig",
     "workers.apps.WorkersConfig",
-    "holidays.apps.HolidaysConfig",
     "payroll.apps.PayrollConfig",
 ]
 
